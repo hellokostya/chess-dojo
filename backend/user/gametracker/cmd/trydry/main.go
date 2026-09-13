@@ -11,13 +11,16 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/database"
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/user/gametracker"
+	"github.com/jackstenglein/chess-dojo-scheduler/backend/user/progress/progressupdate"
 )
 
 func main() {
@@ -55,7 +58,24 @@ func main() {
 	// No custom TimeControlThresholds configured here, so this uses
 	// database.DefaultTimeControlThresholds — the same fallback the real job
 	// uses for any cohort without admin-configured thresholds.
-	requirement := &database.Requirement{}
+	requirement := &database.Requirement{
+		Id:                "games-and-analysis",
+		Name:              "Games + Analysis",
+		Category:          "Games + Analysis",
+		ScoreboardDisplay: database.ProgressBar,
+		ProgressBarSuffix: " minutes",
+		Counts:            map[database.DojoCohort]int{database.DojoCohort(*cohort): 100000},
+		NumberOfCohorts:   1,
+		UnitScore:         0.1,
+	}
+
+	user := &database.User{
+		Username:    *username,
+		DisplayName: *username,
+		DojoCohort:  database.DojoCohort(*cohort),
+	}
+	repo := newFakeRepository(user)
+	source := *platform
 
 	var totalLoggedMinutes int
 	var loggedCount, skippedCount int
@@ -64,6 +84,9 @@ func main() {
 		class := gametracker.ClassifyGame(g.BaseSeconds, g.IncrementSeconds, database.DojoCohort(*cohort), requirement)
 		estimatedSeconds := gametracker.EstimateGameSeconds(g.BaseSeconds, g.IncrementSeconds)
 		minutes := estimatedSeconds / 60
+		if minutes <= 0 {
+			minutes = 1
+		}
 
 		ratedNote := ""
 		if !g.Rated {
@@ -76,6 +99,29 @@ func main() {
 			action = "LOG "
 			totalLoggedMinutes += minutes
 			loggedCount++
+
+			progress := user.Progress[requirement.Id]
+			previousCount := 0
+			if progress != nil {
+				previousCount = progress.Counts[database.AllCohorts]
+			}
+
+			_, _, err := progressupdate.UpdateProgressAndLog(repo, user, requirement, &progressupdate.Request{
+				RequirementId:           requirement.Id,
+				Cohort:                  database.DojoCohort(*cohort),
+				PreviousCount:           previousCount,
+				NewCount:                previousCount + minutes,
+				IncrementalMinutesSpent: minutes,
+				Date:                    g.EndTime.Format(time.RFC3339),
+				GameInfo: &database.TimelineGameInfo{
+					Id:         g.Id,
+					AutoLogged: true,
+					Source:     source,
+				},
+			})
+			if err != nil {
+				fmt.Printf("Failed to log game %s: %v\n", g.Id, err)
+			}
 		} else {
 			skippedCount++
 		}
@@ -86,4 +132,14 @@ func main() {
 
 	fmt.Printf("\n%d games would be logged, %d skipped (bullet/blitz/unrated), totaling ~%d minutes on Games + Analysis.\n",
 		loggedCount, skippedCount, totalLoggedMinutes)
+
+	if len(repo.timelineEntries) > 0 {
+		fmt.Println("\n--- Example TimelineEntry that would be created (most recent) ---")
+		last := repo.timelineEntries[len(repo.timelineEntries)-1]
+		encoded, _ := json.MarshalIndent(last, "", "  ")
+		fmt.Println(string(encoded))
+		fmt.Println(strings.Repeat("-", 60))
+		fmt.Println("This is the real, exact struct the sync job would write to DynamoDB and")
+		fmt.Println("that the heatmap/scoreboard/Activity feed would then read.")
+	}
 }
