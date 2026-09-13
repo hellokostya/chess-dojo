@@ -6,6 +6,7 @@ import (
 	stderrors "errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/api/errors"
@@ -219,9 +220,15 @@ func fetchChesscomArchive(archiveUrl string) ([]FetchedGame, error) {
 }
 
 // parseChesscomTimeControl parses Chess.com's "base+increment" or "base" time
-// control string (e.g. "600+5", "600", or "1/86400" for daily games, which is
-// returned as a very large base so it is classified as classical).
+// control string (e.g. "600+5", "600"). Daily/correspondence controls (e.g.
+// "1/86400") are detected by the "/" separator and always treated as
+// classical-length, since Sscanf's "%d" would otherwise silently match just their
+// leading digit and misclassify them as bullet.
 func parseChesscomTimeControl(tc string) (base int, increment int) {
+	if strings.Contains(tc, "/") {
+		return database.DefaultTimeControlThresholds.ClassicalSeconds, 0
+	}
+
 	var b, i int
 	if n, err := fmt.Sscanf(tc, "%d+%d", &b, &i); err == nil && n == 2 {
 		return b, i
@@ -229,6 +236,5 @@ func parseChesscomTimeControl(tc string) (base int, increment int) {
 	if n, err := fmt.Sscanf(tc, "%d", &b); err == nil && n == 1 {
 		return b, 0
 	}
-	// Daily/correspondence format like "1/86400": always classical-length.
 	return database.DefaultTimeControlThresholds.ClassicalSeconds, 0
 }
