@@ -101,6 +101,8 @@ function renderRatingsEditor(
             setRatingEditors={vi.fn()}
             enableZenMode={false}
             setEnableZenMode={vi.fn()}
+            gameTrackerEnabled={{}}
+            setGameTrackerEnabled={vi.fn()}
             errors={{}}
         />,
     );

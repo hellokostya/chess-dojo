@@ -6,7 +6,7 @@ import { TimelineEntry, TimelineSpecialRequirementId } from '@/database/timeline
 import Avatar from '@/profile/Avatar';
 import CohortIcon from '@/scoreboard/CohortIcon';
 import { CategoryColors } from '@/style/ThemeProvider';
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, Chip, Stack, Tooltip, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { Link } from '../navigation/Link';
 
@@ -98,7 +98,26 @@ const NewsfeedItemHeader: React.FC<NewsfeedItemHeaderProps> = ({ entry }) => {
                             alignItems: 'end',
                         }}
                     >
-                        <Typography sx={{ color: CategoryColors[category] }}>{category}</Typography>
+                        <Stack direction='row' spacing={0.5} sx={{ alignItems: 'center' }}>
+                            <Typography sx={{ color: CategoryColors[category] }}>
+                                {category}
+                            </Typography>
+                            {entry.gameInfo?.autoLogged && (
+                                <Tooltip
+                                    title={t('autoLoggedTooltip', {
+                                        source: entry.gameInfo.source || '',
+                                    })}
+                                >
+                                    <Chip
+                                        label={t('autoLogged')}
+                                        size='small'
+                                        color='info'
+                                        variant='outlined'
+                                        sx={{ height: 20, fontSize: '0.7rem' }}
+                                    />
+                                </Tooltip>
+                            )}
+                        </Stack>
                         {entry.isCustomRequirement && (
                             <Typography
                                 variant='body2'

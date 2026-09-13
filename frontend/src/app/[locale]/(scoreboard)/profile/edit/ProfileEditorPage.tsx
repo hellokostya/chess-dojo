@@ -87,6 +87,36 @@ function getRatingsFromEditors(ratingEditors: Record<RatingSystem, RatingEditor>
     return ratings;
 }
 
+const GAME_TRACKER_SYSTEMS = [RatingSystem.Chesscom, RatingSystem.Lichess] as const;
+
+function getGameTrackerEnabled(
+    settings: User['gameTrackerSettings'],
+): Partial<Record<RatingSystem, boolean>> {
+    const result: Partial<Record<RatingSystem, boolean>> = {};
+    for (const rs of GAME_TRACKER_SYSTEMS) {
+        result[rs] = Boolean(settings?.[rs]?.enabled);
+    }
+    return result;
+}
+
+function getGameTrackerSettingsFromEditors(
+    gameTrackerEnabled: Partial<Record<RatingSystem, boolean>>,
+    existing: User['gameTrackerSettings'],
+): NonNullable<User['gameTrackerSettings']> {
+    const result: NonNullable<User['gameTrackerSettings']> = { ...existing };
+    for (const rs of GAME_TRACKER_SYSTEMS) {
+        const enabled = Boolean(gameTrackerEnabled[rs]);
+        const previous = existing?.[rs];
+        result[rs] = {
+            ...previous,
+            enabled,
+            enabledAt:
+                enabled && !previous?.enabled ? new Date().toISOString() : previous?.enabledAt,
+        };
+    }
+    return result;
+}
+
 function parseRating(rating: string | undefined): number {
     if (!rating) {
         return 0;
@@ -171,6 +201,13 @@ export function ProfileEditorPage({ user }: { user: User }) {
     const [ratingSystem, setRatingSystem] = useState(user.ratingSystem);
     const [ratingEditors, setRatingEditors] = useState(getRatingEditors(user.ratings));
     const [enableZenMode, setEnableZenMode] = useState(user.enableZenMode || false);
+    const [gameTrackerEnabled, setGameTrackerEnabled] = useState(() =>
+        getGameTrackerEnabled(user.gameTrackerSettings),
+    );
+
+    const setGameTrackerEnabledForSystem = (rs: RatingSystem, enabled: boolean) => {
+        setGameTrackerEnabled({ ...gameTrackerEnabled, [rs]: enabled });
+    };
 
     const [notificationSettings, setNotificationSettings] = useState(
         user.notificationSettings || {},
@@ -211,6 +248,14 @@ export function ProfileEditorPage({ user }: { user: User }) {
                     : getRatingsFromEditors(ratingEditors),
             enableZenMode:
                 !enableZenMode && user.enableZenMode === undefined ? undefined : enableZenMode,
+            gameTrackerSettings:
+                JSON.stringify(gameTrackerEnabled) ===
+                JSON.stringify(getGameTrackerEnabled(user.gameTrackerSettings))
+                    ? user.gameTrackerSettings
+                    : getGameTrackerSettingsFromEditors(
+                          gameTrackerEnabled,
+                          user.gameTrackerSettings,
+                      ),
         },
         undefined,
     );
@@ -351,7 +396,28 @@ export function ProfileEditorPage({ user }: { user: User }) {
         }
 
         if (ratingsUpdate) {
-            saveSection(ratingsUpdate);
+            // A game tracker toggle cannot stay enabled once its username is cleared.
+            const correctedGameTrackerEnabled = { ...gameTrackerEnabled };
+            let correctedAny = false;
+            for (const rs of GAME_TRACKER_SYSTEMS) {
+                if (correctedGameTrackerEnabled[rs] && !ratingEditors[rs].username.trim()) {
+                    correctedGameTrackerEnabled[rs] = false;
+                    correctedAny = true;
+                }
+            }
+
+            if (correctedAny) {
+                setGameTrackerEnabled(correctedGameTrackerEnabled);
+                saveSection({
+                    ...ratingsUpdate,
+                    gameTrackerSettings: getGameTrackerSettingsFromEditors(
+                        correctedGameTrackerEnabled,
+                        user.gameTrackerSettings,
+                    ),
+                });
+            } else {
+                saveSection(ratingsUpdate);
+            }
         }
     };
 
@@ -360,6 +426,7 @@ export function ProfileEditorPage({ user }: { user: User }) {
         setRatingSystem(user.ratingSystem);
         setRatingEditors(getRatingEditors(user.ratings));
         setEnableZenMode(user.enableZenMode || false);
+        setGameTrackerEnabled(getGameTrackerEnabled(user.gameTrackerSettings));
         setErrors({});
     };
 
@@ -546,6 +613,8 @@ export function ProfileEditorPage({ user }: { user: User }) {
                                 setRatingEditors={setRatingEditors}
                                 enableZenMode={enableZenMode}
                                 setEnableZenMode={setEnableZenMode}
+                                gameTrackerEnabled={gameTrackerEnabled}
+                                setGameTrackerEnabled={setGameTrackerEnabledForSystem}
                                 errors={errors}
                             />
                             <Stack

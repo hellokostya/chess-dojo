@@ -15,6 +15,7 @@ import {
     MenuItem,
     Stack,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
@@ -45,9 +46,15 @@ interface RatingsEditorProps {
     enableZenMode: boolean;
     /** A callback to set whether zen mode is enabled. */
     setEnableZenMode: (enabled: boolean) => void;
+    /** Which rating systems have the auto game tracker enabled (Chesscom/Lichess only). */
+    gameTrackerEnabled: Partial<Record<RatingSystem, boolean>>;
+    /** A callback to set whether the auto game tracker is enabled for a rating system. */
+    setGameTrackerEnabled: (ratingSystem: RatingSystem, enabled: boolean) => void;
     /** The errors in the profile editor. */
     errors: Record<string, string>;
 }
+
+const GAME_TRACKER_SYSTEMS = new Set([RatingSystem.Chesscom, RatingSystem.Lichess]);
 
 const CUSTOM_RATING_SYSTEMS = [RatingSystem.Custom, RatingSystem.Custom2, RatingSystem.Custom3];
 
@@ -136,6 +143,8 @@ export function RatingsEditor({
     setRatingEditors,
     enableZenMode,
     setEnableZenMode,
+    gameTrackerEnabled,
+    setGameTrackerEnabled,
     errors,
 }: RatingsEditorProps) {
     const t = useTranslations('profile.ratings');
@@ -372,6 +381,41 @@ export function RatingsEditor({
                                     label={t(form.hideLabelKey)}
                                 />
                             </Grid>
+
+                            {GAME_TRACKER_SYSTEMS.has(rs) && (
+                                <Grid size={12}>
+                                    <Tooltip
+                                        title={
+                                            ratingEditors[rs].username.trim()
+                                                ? ''
+                                                : t('noAccountHelper')
+                                        }
+                                    >
+                                        <span>
+                                            <FormControlLabel
+                                                label={t('gameTracker')}
+                                                control={
+                                                    <Checkbox
+                                                        checked={Boolean(gameTrackerEnabled[rs])}
+                                                        disabled={
+                                                            !ratingEditors[rs].username.trim()
+                                                        }
+                                                        onChange={(event) =>
+                                                            setGameTrackerEnabled(
+                                                                rs,
+                                                                event.target.checked,
+                                                            )
+                                                        }
+                                                    />
+                                                }
+                                            />
+                                        </span>
+                                    </Tooltip>
+                                    <Typography variant='caption' color='text.secondary'>
+                                        {t('gameTrackerHelper')}
+                                    </Typography>
+                                </Grid>
+                            )}
                         </Grid>
                     );
                 }
