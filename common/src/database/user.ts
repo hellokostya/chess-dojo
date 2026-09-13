@@ -21,6 +21,24 @@ export interface UserExamSummary {
     rating: number;
 }
 
+/**
+ * GameTrackerSetting holds a user's opt-in state and sync bookkeeping for the
+ * automatic game tracker on a single rating system (Chesscom or Lichess).
+ */
+export interface GameTrackerSetting {
+    /** Whether the user has opted in to automatic game tracking for this platform. */
+    enabled: boolean;
+
+    /** The RFC3339 timestamp of the last successful sync. */
+    lastSyncedAt?: string;
+
+    /** The id of the last game processed by the sync job. */
+    lastSyncedGameId?: string;
+
+    /** The RFC3339 timestamp when the user enabled this platform's game tracker. */
+    enabledAt?: string;
+}
+
 export interface User {
     username: string;
     displayName: string;
@@ -33,6 +51,9 @@ export interface User {
     ratingSystem: RatingSystem;
     ratings: Partial<Record<RatingSystem, Rating>>;
     ratingHistories?: Record<RatingSystem, RatingHistory[]>;
+
+    /** The user's opt-in settings for the automatic game tracker, keyed by rating system. */
+    gameTrackerSettings?: Partial<Record<RatingSystem, GameTrackerSetting>>;
 
     /** The user's aggregate time management rating. */
     timeManagementRating?: TimeManagementRating;

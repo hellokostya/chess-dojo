@@ -118,6 +118,14 @@ type TimelineGameInfo struct {
 
 	// The headers of the game
 	Headers map[string]string `dynamodbav:"headers" json:"headers"`
+
+	// Whether this game was automatically logged by the game tracker, as opposed to
+	// manually submitted by the user.
+	AutoLogged bool `dynamodbav:"autoLogged,omitempty" json:"autoLogged,omitempty"`
+
+	// The platform the game was automatically logged from (e.g. "lichess", "chesscom").
+	// Only set when AutoLogged is true.
+	Source string `dynamodbav:"source,omitempty" json:"source,omitempty"`
 }
 
 type Reaction struct {

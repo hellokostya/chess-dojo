@@ -172,6 +172,23 @@ type RatingHistory struct {
 	Rating int `dynamodbav:"rating" json:"rating"`
 }
 
+// GameTrackerSetting holds a user's opt-in state and sync bookkeeping for the
+// automatic game tracker on a single rating system (Chesscom or Lichess).
+type GameTrackerSetting struct {
+	// Whether the user has opted in to automatic game tracking for this platform.
+	Enabled bool `dynamodbav:"enabled" json:"enabled"`
+
+	// The RFC3339 timestamp of the last successful sync. Used as the watermark for
+	// the next sync's fetch window.
+	LastSyncedAt string `dynamodbav:"lastSyncedAt,omitempty" json:"lastSyncedAt,omitempty"`
+
+	// The id of the last game processed by the sync job, used as an extra dedup guard.
+	LastSyncedGameId string `dynamodbav:"lastSyncedGameId,omitempty" json:"lastSyncedGameId,omitempty"`
+
+	// The RFC3339 timestamp when the user enabled this platform's game tracker.
+	EnabledAt string `dynamodbav:"enabledAt,omitempty" json:"enabledAt,omitempty"`
+}
+
 type User struct {
 	// The user's Cognito username. Uniquely identifies a user
 	Username string `dynamodbav:"username" json:"username"`
@@ -213,6 +230,10 @@ type User struct {
 
 	// A map from a rating system to a slice of RatingHistory objects for that rating system.
 	RatingHistories map[RatingSystem][]RatingHistory `dynamodbav:"ratingHistories" json:"ratingHistories"`
+
+	// The user's opt-in settings for the automatic game tracker, keyed by rating system
+	// (currently only Chesscom and Lichess are supported).
+	GameTrackerSettings map[RatingSystem]*GameTrackerSetting `dynamodbav:"gameTrackerSettings,omitempty" json:"gameTrackerSettings,omitempty"`
 
 	// The user's Dojo cohort
 	DojoCohort DojoCohort `dynamodbav:"dojoCohort" json:"dojoCohort"`

@@ -53,6 +53,10 @@ type Task interface {
 	GetCounts() map[DojoCohort]int
 	// Returns true if the task is custom-created by the user.
 	IsCustom() bool
+	// Returns the rapid/classical time control threshold for the given cohort, used
+	// by the auto game tracker. Falls back to DefaultTimeControlThresholds if the
+	// task has no explicit threshold configured for the cohort.
+	GetTimeControlThreshold(cohort DojoCohort) TimeControlThreshold
 }
 
 // CustomTask contains the fields for a user-entered task.
@@ -134,6 +138,10 @@ func (t *CustomTask) GetCounts() map[DojoCohort]int {
 
 func (t *CustomTask) IsCustom() bool {
 	return true
+}
+
+func (t *CustomTask) GetTimeControlThreshold(_ DojoCohort) TimeControlThreshold {
+	return DefaultTimeControlThresholds
 }
 
 // Position contains the field for a sparring position.
@@ -243,6 +251,32 @@ type Requirement struct {
 
 	// The subscription tiers that have access to this task.
 	SubscriptionTiers []SubscriptionTier `dynamodbav:"subscriptionTiers,omitempty" json:"subscriptionTiers,omitempty"`
+
+	// Per-cohort time control thresholds used by the auto game tracker to classify
+	// games as blitz/rapid/classical. Falls back to DefaultTimeControlThresholds
+	// for any cohort without an explicit entry.
+	TimeControlThresholds map[DojoCohort]TimeControlThreshold `dynamodbav:"timeControlThresholds,omitempty" json:"timeControlThresholds,omitempty"`
+}
+
+// TimeControlThreshold defines the minimum estimated game length (in seconds) for a
+// game to be classified as rapid or classical, for a specific cohort. Games below
+// RapidSeconds are classified as blitz.
+type TimeControlThreshold struct {
+	RapidSeconds     int `dynamodbav:"rapidSeconds" json:"rapidSeconds"`
+	ClassicalSeconds int `dynamodbav:"classicalSeconds" json:"classicalSeconds"`
+}
+
+// BulletCeilingSeconds is the estimated game length (in seconds) below which a game
+// is always classified as bullet, regardless of cohort. Bullet games are excluded
+// from the auto game tracker entirely.
+const BulletCeilingSeconds = 179
+
+// DefaultTimeControlThresholds provides fallback rapid/classical thresholds for any
+// cohort that does not have explicit TimeControlThresholds configured on the
+// requirement.
+var DefaultTimeControlThresholds = TimeControlThreshold{
+	RapidSeconds:     600,  // 10+0 or equivalent
+	ClassicalSeconds: 2700, // 45+0 or equivalent
 }
 
 func (r *Requirement) clampCount(cohort DojoCohort, count int) int {
@@ -386,6 +420,13 @@ func (r *Requirement) GetCounts() map[DojoCohort]int {
 
 func (r *Requirement) IsCustom() bool {
 	return false
+}
+
+func (r *Requirement) GetTimeControlThreshold(cohort DojoCohort) TimeControlThreshold {
+	if threshold, ok := r.TimeControlThresholds[cohort]; ok {
+		return threshold
+	}
+	return DefaultTimeControlThresholds
 }
 
 type RequirementProgress struct {

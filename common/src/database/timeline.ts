@@ -91,6 +91,10 @@ export interface TimelineGameInfo {
     id: string;
     /** The headers of the game. */
     headers: Record<string, string>;
+    /** Whether this game was automatically logged by the game tracker. */
+    autoLogged?: boolean;
+    /** The platform the game was automatically logged from (e.g. "lichess", "chesscom"). */
+    source?: string;
 }
 
 /** A reaction on a timeline entry. */

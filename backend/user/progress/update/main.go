@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/google/uuid"
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/api"
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/api/errors"
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/api/log"
@@ -102,85 +100,15 @@ func handleDefaultTask(event api.Request, request *ProgressUpdateRequest, user *
 	return handleTask(event, request, user, requirement)
 }
 
-func handleTask(event api.Request, request *ProgressUpdateRequest, user *database.User, task database.Task) (api.Response, error) {
-	totalCount, ok := task.GetCounts()[request.Cohort]
-	if !ok {
-		return api.Failure(errors.New(400, fmt.Sprintf("Invalid request: cohort `%s` does not apply to this requirement", request.Cohort), "")), nil
-	}
-
-	progress, ok := user.Progress[request.RequirementId]
-	if !ok {
-		progress = &database.RequirementProgress{
-			RequirementId: request.RequirementId,
-			Counts:        make(map[database.DojoCohort]int),
-			MinutesSpent:  make(map[database.DojoCohort]int),
-		}
-	}
-	if progress.Counts == nil {
-		progress.Counts = make(map[database.DojoCohort]int)
-	}
-
-	if task.GetNumberOfCohorts() == 1 || task.GetNumberOfCohorts() == 0 {
-		progress.Counts[database.AllCohorts] = request.NewCount
-	} else {
-		progress.Counts[request.Cohort] = request.NewCount
-	}
-	progress.MinutesSpent[request.Cohort] += request.IncrementalMinutesSpent
-
-	now := time.Now()
-	updatedAt := now.Format(time.RFC3339)
-	progress.UpdatedAt = updatedAt
-
-	date := now
-	if request.Date != "" {
-		d, err := time.Parse(time.RFC3339, request.Date)
-		if err != nil {
-			log.Errorf("Failed to parse request.Date: %v", err)
-		} else {
-			date = d
-		}
-	}
-
-	originalScore := task.CalculateScoreCount(request.Cohort, request.PreviousCount)
-	newScore := task.CalculateScoreCount(request.Cohort, request.NewCount)
-
-	timelineEntry := &database.TimelineEntry{
-		TimelineEntryKey: database.TimelineEntryKey{
-			Owner: user.Username,
-			Id:    fmt.Sprintf("%s_%s", date.Format(time.DateOnly), uuid.NewString()),
-		},
-		OwnerDisplayName:    user.DisplayName,
-		RequirementId:       request.RequirementId,
-		RequirementName:     task.GetName(),
-		RequirementCategory: task.GetCategory(),
-		IsCustomRequirement: task.IsCustom(),
-		ScoreboardDisplay:   task.GetScoreboardDisplay(),
-		ProgressBarSuffix:   task.GetProgressBarSuffix(),
-		Cohort:              request.Cohort,
-		TotalCount:          totalCount,
-		PreviousCount:       request.PreviousCount,
-		NewCount:            request.NewCount,
-		DojoPoints:          newScore - originalScore,
-		TotalDojoPoints:     newScore,
-		MinutesSpent:        request.IncrementalMinutesSpent,
-		TotalMinutesSpent:   progress.MinutesSpent[request.Cohort],
-		Date:                date.Format(time.RFC3339),
-		CreatedAt:           updatedAt,
-		Notes:               request.Notes,
-	}
-
-	if err := repository.PutTimelineEntry(timelineEntry); err != nil {
-		return api.Failure(err), nil
-	}
-
-	user, err := repository.UpdateUserProgress(user.Username, progress)
+func handleTask(_ api.Request, request *ProgressUpdateRequest, user *database.User, task database.Task) (api.Response, error) {
+	updatedUser, timelineEntry, err := UpdateProgressAndLog(user, task, request)
 	if err != nil {
 		return api.Failure(err), nil
 	}
 
-	// milestone.checkNotification(user)
+	// milestone.checkNotification(updatedUser)
 
-	return api.Success(ProgressUpdateResponse{User: user, TimelineEntry: timelineEntry}), nil
+	return api.Success(ProgressUpdateResponse{User: updatedUser, TimelineEntry: timelineEntry}), nil
 }
 
 const milestoneThreshold = 85
