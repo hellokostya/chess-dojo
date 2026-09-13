@@ -787,6 +787,11 @@ type UserUpdate struct {
 	// The user's ratings in each rating system
 	Ratings *map[RatingSystem]*Rating `dynamodbav:"ratings,omitempty" json:"ratings,omitempty"`
 
+	// The user's opt-in settings for the automatic game tracker, keyed by rating system.
+	// When set by the user (via the ratings editor), only Enabled is expected to change.
+	// The sync job also uses this field to advance LastSyncedAt/LastSyncedGameId.
+	GameTrackerSettings *map[RatingSystem]*GameTrackerSetting `dynamodbav:"gameTrackerSettings,omitempty" json:"gameTrackerSettings,omitempty"`
+
 	// The user's Dojo cohort
 	DojoCohort *DojoCohort `dynamodbav:"dojoCohort,omitempty" json:"dojoCohort,omitempty"`
 
@@ -1491,6 +1496,38 @@ func listUserRatingsInput(cohort DojoCohort, limit int64) *dynamodb.QueryInput {
 		input.SetLimit(limit)
 	}
 	return input
+}
+
+const gameTrackerProjection = "username, displayName, dojoCohort, progress, gameTrackerSettings"
+
+// ListGameTrackerUsersPage returns up to limit Users matching the provided cohort,
+// projected down to only the fields the game tracker sync job needs. A limit of 0
+// means no limit (up to 1MB of data). startKey is an optional parameter that can be
+// used to perform pagination. Callers must still filter the results for users with
+// an enabled GameTrackerSetting, since this only narrows by cohort.
+func (repo *dynamoRepository) ListGameTrackerUsersPage(cohort DojoCohort, startKey string, limit int64) ([]*User, string, error) {
+	input := &dynamodb.QueryInput{
+		KeyConditionExpression: aws.String("#cohort = :cohort"),
+		ExpressionAttributeNames: map[string]*string{
+			"#cohort": aws.String("dojoCohort"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":cohort": {S: aws.String(string(cohort))},
+		},
+		ProjectionExpression: aws.String(gameTrackerProjection),
+		IndexName:            aws.String("CohortIdx"),
+		TableName:            aws.String(userTable),
+	}
+	if limit > 0 {
+		input.SetLimit(limit)
+	}
+
+	var users []*User
+	lastKey, err := repo.query(input, startKey, &users)
+	if err != nil {
+		return nil, "", err
+	}
+	return users, lastKey, nil
 }
 
 func (repo *dynamoRepository) UpdateUserRatings(users []*User) error {

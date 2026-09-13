@@ -1,4 +1,10 @@
-package main
+// Package progressupdate holds the shared logic for turning a progress update
+// (count/minutes change on a task) into a correctly-shaped TimelineEntry, DojoPoints
+// update, and RequirementProgress update. It is used by both the manual HTTP
+// progress-update handler (backend/user/progress/update) and the automatic game
+// tracker sync job (backend/user/gametracker/sync), so that both paths feed the
+// heatmap, scoreboard, and Activity pie charts identically.
+package progressupdate
 
 import (
 	"fmt"
@@ -10,16 +16,31 @@ import (
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/database"
 )
 
+// Request is a single progress update to apply to a user's task.
+type Request struct {
+	RequirementId           string              `json:"requirementId"`
+	Cohort                  database.DojoCohort `json:"cohort"`
+	PreviousCount           int                 `json:"previousCount"`
+	NewCount                int                 `json:"newCount"`
+	IncrementalMinutesSpent int                 `json:"incrementalMinutesSpent"`
+	Date                    string              `json:"date"`
+	Notes                   string              `json:"notes"`
+
+	// GameInfo, if set, is attached to the resulting TimelineEntry. Used by the
+	// game tracker to mark an entry as auto-logged from a specific platform.
+	GameInfo *database.TimelineGameInfo
+}
+
 // UpdateProgressAndLog applies a progress update for the given user/task/request,
 // writes the resulting TimelineEntry, and persists the updated progress. It is the
 // single source of truth for turning a count/minutes update into a correctly-shaped
 // TimelineEntry (feeding the heatmap), DojoPoints (feeding the scoreboard), and
-// RequirementProgress update (feeding the Activity pie charts) — used by both the
-// manual HTTP progress-update handler and the automatic game tracker sync job.
+// RequirementProgress update (feeding the Activity pie charts).
 func UpdateProgressAndLog(
+	repository database.UserProgressUpdater,
 	user *database.User,
 	task database.Task,
-	request *ProgressUpdateRequest,
+	request *Request,
 ) (*database.User, *database.TimelineEntry, error) {
 	totalCount, ok := task.GetCounts()[request.Cohort]
 	if !ok {
@@ -85,6 +106,7 @@ func UpdateProgressAndLog(
 		Date:                date.Format(time.RFC3339),
 		CreatedAt:           updatedAt,
 		Notes:               request.Notes,
+		GameInfo:            request.GameInfo,
 	}
 
 	if err := repository.PutTimelineEntry(timelineEntry); err != nil {

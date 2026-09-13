@@ -13,6 +13,7 @@ import (
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/api/log"
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/database"
 	"github.com/jackstenglein/chess-dojo-scheduler/backend/discord"
+	"github.com/jackstenglein/chess-dojo-scheduler/backend/user/progress/progressupdate"
 )
 
 var repository database.UserProgressUpdater = database.DynamoDB
@@ -101,7 +102,15 @@ func handleDefaultTask(event api.Request, request *ProgressUpdateRequest, user *
 }
 
 func handleTask(_ api.Request, request *ProgressUpdateRequest, user *database.User, task database.Task) (api.Response, error) {
-	updatedUser, timelineEntry, err := UpdateProgressAndLog(user, task, request)
+	updatedUser, timelineEntry, err := progressupdate.UpdateProgressAndLog(repository, user, task, &progressupdate.Request{
+		RequirementId:           request.RequirementId,
+		Cohort:                  request.Cohort,
+		PreviousCount:           request.PreviousCount,
+		NewCount:                request.NewCount,
+		IncrementalMinutesSpent: request.IncrementalMinutesSpent,
+		Date:                    request.Date,
+		Notes:                   request.Notes,
+	})
 	if err != nil {
 		return api.Failure(err), nil
 	}

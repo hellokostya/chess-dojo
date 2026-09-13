@@ -673,6 +673,75 @@ functions:
             - ${param:FideRatingsBucket}
             - /players_list.zip
 
+  # syncGameTracker is the auto game tracker's daily sync job (see
+  # backend/user/gametracker/sync/main.go). It is dark-launched: gameTrackerAllowlist
+  # must be set to a comma-separated list of test usernames before it does anything,
+  # and gamesAnalysisRequirementId must be confirmed against the real requirements
+  # table before enabling it for real cohorts.
+  syncGameTracker:
+    handler: gametracker/sync/main.go
+    timeout: 300
+    events:
+      - schedule:
+          rate: cron(30 0 * * ? *)
+          input:
+            id: GameTrackerSync
+            detail-type: Scheduled Event
+            source: Serverless
+            region: ${aws:region}
+            detail:
+              cohorts:
+                - 0-300
+                - 300-400
+                - 400-500
+                - 500-600
+                - 600-700
+                - 700-800
+                - 800-900
+                - 900-1000
+                - 1000-1100
+                - 1100-1200
+                - 1200-1300
+                - 1300-1400
+                - 1400-1500
+                - 1500-1600
+                - 1600-1700
+                - 1700-1800
+                - 1800-1900
+                - 1900-2000
+                - 2000-2100
+                - 2100-2200
+                - 2200-2300
+                - 2300-2400
+                - 2400+
+    environment:
+      # Comma-separated test usernames. Empty means the job no-ops (see main.go).
+      GAME_TRACKER_ALLOWLIST: ''
+      # Must be set to the real "Games + Analysis" requirement id before this job
+      # can log anything; left empty until that id is confirmed (see plan open risk #5).
+      GAMES_ANALYSIS_REQUIREMENT_ID: ''
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource:
+          - Fn::Join:
+              - ''
+              - - ${param:UsersTableArn}
+                - '/index/CohortIdx'
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: ${param:UsersTableArn}
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: ${param:TimelineTableArn}
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+        Resource: ${param:RequirementsTableArn}
+
   updateStatistics:
     handler: statistics/update/main.go
     events:
