@@ -54,9 +54,12 @@ interface RatingsEditorProps {
     errors: Record<string, string>;
 }
 
-const GAME_TRACKER_SYSTEMS = new Set([RatingSystem.Chesscom, RatingSystem.Lichess]);
-
 const CUSTOM_RATING_SYSTEMS = [RatingSystem.Custom, RatingSystem.Custom2, RatingSystem.Custom3];
+
+const GAME_TRACKER_PLATFORMS = [
+    { system: RatingSystem.Chesscom, labelKey: 'chesscomPlatformLabel' as const },
+    { system: RatingSystem.Lichess, labelKey: 'lichessPlatformLabel' as const },
+];
 
 const RATING_SYSTEM_FORMS = [
     { system: RatingSystem.Chesscom, labelKey: 'chesscomUsername', hideLabelKey: 'hideUsername' },
@@ -381,41 +384,6 @@ export function RatingsEditor({
                                     label={t(form.hideLabelKey)}
                                 />
                             </Grid>
-
-                            {GAME_TRACKER_SYSTEMS.has(rs) && (
-                                <Grid size={12}>
-                                    <Tooltip
-                                        title={
-                                            ratingEditors[rs].username.trim()
-                                                ? ''
-                                                : t('noAccountHelper')
-                                        }
-                                    >
-                                        <span>
-                                            <FormControlLabel
-                                                label={t('gameTracker')}
-                                                control={
-                                                    <Checkbox
-                                                        checked={Boolean(gameTrackerEnabled[rs])}
-                                                        disabled={
-                                                            !ratingEditors[rs].username.trim()
-                                                        }
-                                                        onChange={(event) =>
-                                                            setGameTrackerEnabled(
-                                                                rs,
-                                                                event.target.checked,
-                                                            )
-                                                        }
-                                                    />
-                                                }
-                                            />
-                                        </span>
-                                    </Tooltip>
-                                    <Typography variant='caption' color='text.secondary'>
-                                        {t('gameTrackerHelper')}
-                                    </Typography>
-                                </Grid>
-                            )}
                         </Grid>
                     );
                 }
@@ -470,6 +438,46 @@ export function RatingsEditor({
                     </Grid>
                 );
             })}
+
+            <Stack
+                id='game-tracker'
+                sx={{
+                    scrollMarginTop: 'calc(var(--navbar-height) + 8px)',
+                }}
+            >
+                <Typography variant='h5'>{t('gameTrackerHeading')}</Typography>
+                <Divider />
+            </Stack>
+
+            <Typography variant='body2' color='text.secondary'>
+                {t('gameTrackerHelper')}
+            </Typography>
+
+            <Stack spacing={1}>
+                {GAME_TRACKER_PLATFORMS.map(({ system, labelKey }) => {
+                    const hasUsername = Boolean(ratingEditors[system].username.trim());
+                    return (
+                        <Tooltip key={system} title={hasUsername ? '' : t('noAccountHelper')}>
+                            <span>
+                                <FormControlLabel
+                                    label={t(labelKey)}
+                                    control={
+                                        <Checkbox
+                                            checked={Boolean(gameTrackerEnabled[system])}
+                                            disabled={!hasUsername}
+                                            onChange={(event) =>
+                                                setGameTrackerEnabled(system, event.target.checked)
+                                            }
+                                        />
+                                    }
+                                />
+                            </span>
+                        </Tooltip>
+                    );
+                })}
+            </Stack>
+
+            <Divider sx={{ mt: 2 }} />
 
             <FormControlLabel
                 label={t('zenMode')}

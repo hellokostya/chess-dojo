@@ -92,7 +92,10 @@
             "custom2": "Custom (2)",
             "custom3": "Custom (3)",
             "gameTracker": "Auto-track games (beta)",
-            "gameTrackerHelper": "Automatically logs your rated rapid and classical games as time spent on Games + Analysis. Bullet and blitz games are never logged. Your first sync only looks back 7 days; after that, new games are picked up daily. Enter a username above to enable this."
+            "gameTrackerHeading": "Auto Game Tracker (beta)",
+            "gameTrackerHelper": "Automatically logs your rated rapid and classical games as time spent on Games + Analysis. Bullet and blitz games are never logged. Your first sync only looks back 7 days; after that, new games are picked up daily. Enter a username above to enable this.",
+            "chesscomPlatformLabel": "Chess.com",
+            "lichessPlatformLabel": "Lichess"
         },
         "notifications": {
             "heading": "Notification Type",
