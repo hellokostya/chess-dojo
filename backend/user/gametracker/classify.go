@@ -19,6 +19,13 @@ const (
 // control's increment when estimating total game length.
 const incrementWeightSeconds = 40
 
+// ClassicalGamesRequirementId is the stable, real production id of the "Classical
+// Games Played" requirement — a count-based task (1 per game, not minutes) that
+// drives the heatmap's classical-game sword icon and the Dojo Digest email's
+// classical game count. It mirrors CLASSICAL_GAMES_REQUIREMENT_ID in
+// common/src/heatmap/heatmap.ts and must stay in sync with it.
+const ClassicalGamesRequirementId = "38f46441-7a4e-4506-8632-166bcbe78baf"
+
 // EstimateGameSeconds returns the estimated total length of a game, in seconds,
 // given its base time and increment (both in seconds), using the standard
 // FIDE/Lichess estimate: base + 40 * increment.

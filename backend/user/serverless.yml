@@ -674,10 +674,13 @@ functions:
             - /players_list.zip
 
   # syncGameTracker is the auto game tracker's daily sync job (see
-  # backend/user/gametracker/sync/main.go). It is dark-launched: gameTrackerAllowlist
-  # must be set to a comma-separated list of test usernames before it does anything,
-  # and gamesAnalysisRequirementId must be confirmed against the real requirements
-  # table before enabling it for real cohorts.
+  # backend/user/gametracker/sync/main.go). It is dark-launched: GAME_TRACKER_ALLOWLIST
+  # must be set to a comma-separated list of test usernames before it does anything.
+  # Classical games log against the existing, real "Classical Games Played"
+  # requirement (id hardcoded in gametracker.ClassicalGamesRequirementId). Rapid
+  # games log against a dedicated "Rapid" task that does not exist yet — a sensei
+  # must create it and RAPID_GAMES_REQUIREMENT_ID must be set to its id before rapid
+  # games will be logged (until then they are classified but skipped).
   syncGameTracker:
     handler: gametracker/sync/main.go
     timeout: 300
@@ -717,9 +720,10 @@ functions:
     environment:
       # Comma-separated test usernames. Empty means the job no-ops (see main.go).
       GAME_TRACKER_ALLOWLIST: ''
-      # Must be set to the real "Games + Analysis" requirement id before this job
-      # can log anything; left empty until that id is confirmed (see plan open risk #5).
-      GAMES_ANALYSIS_REQUIREMENT_ID: ''
+      # Requirement id for the dedicated "Rapid" task. Must be set to a real
+      # requirement id (created by a sensei) before rapid games will be logged;
+      # left empty until that requirement exists.
+      RAPID_GAMES_REQUIREMENT_ID: ''
     iamRoleStatements:
       - Effect: Allow
         Action:

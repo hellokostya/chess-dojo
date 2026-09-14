@@ -1,9 +1,17 @@
 // Command sync is the auto game tracker's scheduled Lambda. For each opted-in user
 // in the given cohort(s), it fetches new Chess.com/Lichess games since the last
-// sync, classifies them, and logs qualifying (rapid/classical) games as time spent
-// against the "Games + Analysis" task via progressupdate.UpdateProgressAndLog — the
-// same path the manual progress-update handler uses, so auto-logged games show up
-// on the heatmap, scoreboard, and Activity pie charts identically to manual entries.
+// sync, classifies them, and logs qualifying games via
+// progressupdate.UpdateProgressAndLog — the same path the manual progress-update
+// handler uses, so auto-logged games show up on the heatmap, scoreboard, and
+// Activity pie charts identically to manual entries.
+//
+// Rapid and classical games are logged differently:
+//   - Classical games log a +1 count against the existing "Classical Games Played"
+//     task (gametracker.ClassicalGamesRequirementId), which drives the heatmap's
+//     sword icon and the Dojo Digest email's classical game count.
+//   - Rapid games log estimated minutes against a separate, dedicated "Rapid" task
+//     (rapidGamesRequirementId) — not "Games + Analysis" — so senseis must create
+//     that requirement before enabling this for real cohorts.
 //
 // v1 is intentionally simple (no checkpointing/continuation, unlike updateRatings):
 // it is dark-launched behind gameTrackerAllowlist so real-world load is validated
@@ -40,11 +48,12 @@ type syncRequest struct {
 	Cohorts []database.DojoCohort `json:"cohorts"`
 }
 
-// gamesAnalysisRequirementId is the stable requirement id for the "Games +
-// Analysis" task that auto-logged games are logged against. Configurable via env
-// var since the exact id must be confirmed against the real requirements table
-// before this job is enabled for real cohorts (see plan open risk #5).
-var gamesAnalysisRequirementId = os.Getenv("GAMES_ANALYSIS_REQUIREMENT_ID")
+// rapidGamesRequirementId is the requirement id for the dedicated "Rapid" task that
+// rapid games log minutes against. Unlike classical games (which use the existing,
+// stable ClassicalGamesRequirementId), no such requirement exists yet — a sensei
+// must create one and this env var must be set to its id before rapid games will
+// be logged.
+var rapidGamesRequirementId = os.Getenv("RAPID_GAMES_REQUIREMENT_ID")
 
 // firstSyncBackfillCap bounds how far back a user's very first sync looks, so
 // opting in doesn't flood their heatmap/points in one run.
@@ -89,10 +98,6 @@ func Handler(ctx context.Context, event Event) error {
 		log.Info("Game tracker allowlist is empty; nothing to sync")
 		return nil
 	}
-	if gamesAnalysisRequirementId == "" {
-		log.Error("GAMES_ANALYSIS_REQUIREMENT_ID is not configured; skipping sync")
-		return nil
-	}
 
 	var req syncRequest
 	if err := unmarshalDetail(event, &req); err != nil {
@@ -100,14 +105,27 @@ func Handler(ctx context.Context, event Event) error {
 		return err
 	}
 
-	requirement, err := repo.GetRequirement(gamesAnalysisRequirementId)
+	classicalRequirement, err := repo.GetRequirement(gametracker.ClassicalGamesRequirementId)
 	if err != nil {
-		log.Errorf("Failed to fetch Games + Analysis requirement: %v", err)
+		log.Errorf("Failed to fetch Classical Games Played requirement: %v", err)
 		return err
 	}
 
+	var rapidRequirement *database.Requirement
+	if rapidGamesRequirementId != "" {
+		rapidRequirement, err = repo.GetRequirement(rapidGamesRequirementId)
+		if err != nil {
+			log.Errorf("Failed to fetch Rapid requirement: %v", err)
+			return err
+		}
+	} else {
+		log.Error("RAPID_GAMES_REQUIREMENT_ID is not configured; rapid games will not be logged")
+	}
+
+	tasks := syncTasks{classical: classicalRequirement, rapid: rapidRequirement}
+
 	for _, cohort := range req.Cohorts {
-		if err := syncCohort(cohort, requirement); err != nil {
+		if err := syncCohort(cohort, tasks); err != nil {
 			log.Errorf("Failed to sync cohort %s: %v", cohort, err)
 			return err
 		}
@@ -115,7 +133,15 @@ func Handler(ctx context.Context, event Event) error {
 	return nil
 }
 
-func syncCohort(cohort database.DojoCohort, requirement *database.Requirement) error {
+// syncTasks holds the two requirements auto-logged games are written against.
+// rapid is nil until RAPID_GAMES_REQUIREMENT_ID is configured; classical is always
+// present since it uses the fixed, real ClassicalGamesRequirementId.
+type syncTasks struct {
+	classical *database.Requirement
+	rapid     *database.Requirement
+}
+
+func syncCohort(cohort database.DojoCohort, tasks syncTasks) error {
 	startKey := ""
 	for {
 		users, nextKey, err := repo.ListGameTrackerUsersPage(cohort, startKey, 0)
@@ -127,7 +153,7 @@ func syncCohort(cohort database.DojoCohort, requirement *database.Requirement) e
 			if !gameTrackerAllowlist[user.Username] {
 				continue
 			}
-			syncUser(user, requirement)
+			syncUser(user, tasks)
 		}
 
 		if nextKey == "" {
@@ -138,7 +164,7 @@ func syncCohort(cohort database.DojoCohort, requirement *database.Requirement) e
 	return nil
 }
 
-func syncUser(user *database.User, requirement *database.Requirement) {
+func syncUser(user *database.User, tasks syncTasks) {
 	for system, setting := range user.GameTrackerSettings {
 		if setting == nil || !setting.Enabled {
 			continue
@@ -155,7 +181,7 @@ func syncUser(user *database.User, requirement *database.Requirement) {
 			continue
 		}
 
-		if err := syncPlatform(user, system, username, setting, requirement); err != nil {
+		if err := syncPlatform(user, system, username, setting, tasks); err != nil {
 			log.Errorf("Failed to sync %s for %s: %v", system, user.Username, err)
 		}
 	}
@@ -166,7 +192,7 @@ func syncPlatform(
 	system database.RatingSystem,
 	username string,
 	setting *database.GameTrackerSetting,
-	requirement *database.Requirement,
+	tasks syncTasks,
 ) error {
 	isFirstSync := setting.LastSyncedAt == ""
 	since, err := syncWindowStart(setting)
@@ -186,16 +212,26 @@ func syncPlatform(
 	latestGameId := setting.LastSyncedGameId
 	latestSyncedAt := setting.LastSyncedAt
 
+	// The classification's cohort-threshold lookup only needs a requirement to read
+	// TimeControlThresholds from; the classical requirement is always present, so
+	// it doubles as that source regardless of which task a game is ultimately
+	// logged against.
 	for _, game := range games {
 		if !game.Rated {
 			continue
 		}
 
-		class := gametracker.ClassifyGame(game.BaseSeconds, game.IncrementSeconds, user.DojoCohort, requirement)
-		if class == gametracker.Rapid || class == gametracker.Classical {
-			if err := logGame(user, requirement, game, source); err != nil {
-				log.Errorf("Failed to log %s game %s for %s: %v", source, game.Id, user.Username, err)
-				continue
+		class := gametracker.ClassifyGame(game.BaseSeconds, game.IncrementSeconds, user.DojoCohort, tasks.classical)
+		switch class {
+		case gametracker.Classical:
+			if err := logClassicalGame(user, tasks.classical, game, source); err != nil {
+				log.Errorf("Failed to log classical game %s for %s: %v", game.Id, user.Username, err)
+			}
+		case gametracker.Rapid:
+			if tasks.rapid == nil {
+				log.Infof("Skipping rapid game %s for %s: no rapid requirement configured", game.Id, user.Username)
+			} else if err := logRapidGame(user, tasks.rapid, game, source); err != nil {
+				log.Errorf("Failed to log rapid game %s for %s: %v", game.Id, user.Username, err)
 			}
 		}
 
@@ -247,27 +283,54 @@ func fetchGames(system database.RatingSystem, username string, since time.Time, 
 	}
 }
 
-func logGame(user *database.User, requirement *database.Requirement, game gametracker.FetchedGame, source string) error {
+// previousCount returns the user's current count for requirement, respecting
+// whether it is tracked per-cohort or across all cohorts (AllCohorts).
+func previousCount(user *database.User, requirement *database.Requirement) int {
+	progress := user.Progress[requirement.Id]
+	if progress == nil {
+		return 0
+	}
+	if requirement.GetNumberOfCohorts() == 1 || requirement.GetNumberOfCohorts() == 0 {
+		return progress.Counts[database.AllCohorts]
+	}
+	return progress.Counts[user.DojoCohort]
+}
+
+// logClassicalGame logs a +1 count against the Classical Games Played task. This
+// task is count-based (games played, not minutes), and drives the heatmap's sword
+// icon and the Dojo Digest email's classical game count.
+func logClassicalGame(user *database.User, requirement *database.Requirement, game gametracker.FetchedGame, source string) error {
+	previous := previousCount(user, requirement)
+
+	_, _, err := progressupdate.UpdateProgressAndLog(repo, user, requirement, &progressupdate.Request{
+		RequirementId: requirement.Id,
+		Cohort:        user.DojoCohort,
+		PreviousCount: previous,
+		NewCount:      previous + 1,
+		Date:          game.EndTime.Format(time.RFC3339),
+		GameInfo: &database.TimelineGameInfo{
+			Id:         game.Id,
+			AutoLogged: true,
+			Source:     source,
+		},
+	})
+	return err
+}
+
+// logRapidGame logs the game's estimated minutes against the dedicated Rapid task.
+func logRapidGame(user *database.User, requirement *database.Requirement, game gametracker.FetchedGame, source string) error {
 	minutes := gametracker.EstimateGameSeconds(game.BaseSeconds, game.IncrementSeconds) / 60
 	if minutes <= 0 {
 		minutes = 1
 	}
 
-	progress := user.Progress[requirement.Id]
-	previousCount := 0
-	if progress != nil {
-		if requirement.GetNumberOfCohorts() == 1 || requirement.GetNumberOfCohorts() == 0 {
-			previousCount = progress.Counts[database.AllCohorts]
-		} else {
-			previousCount = progress.Counts[user.DojoCohort]
-		}
-	}
+	previous := previousCount(user, requirement)
 
 	_, _, err := progressupdate.UpdateProgressAndLog(repo, user, requirement, &progressupdate.Request{
 		RequirementId:           requirement.Id,
 		Cohort:                  user.DojoCohort,
-		PreviousCount:           previousCount,
-		NewCount:                previousCount + minutes,
+		PreviousCount:           previous,
+		NewCount:                previous + minutes,
 		IncrementalMinutesSpent: minutes,
 		Date:                    game.EndTime.Format(time.RFC3339),
 		GameInfo: &database.TimelineGameInfo{

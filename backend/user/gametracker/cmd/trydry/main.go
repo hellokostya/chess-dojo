@@ -1,6 +1,6 @@
 // Command trydry is a local, AWS-free way to try the auto game tracker's
-// fetch + classify logic against a real Chess.com or Lichess account. It makes
-// real network calls to the public Chess.com/Lichess APIs but never touches
+// fetch + classify + log logic against a real Chess.com or Lichess account. It
+// makes real network calls to the public Chess.com/Lichess APIs but never touches
 // AWS/DynamoDB and never writes anything anywhere — it only prints what the
 // sync job would have logged.
 //
@@ -55,16 +55,30 @@ func main() {
 
 	fmt.Printf("Fetched %d games for %s (%s) since %s\n\n", len(games), *username, *platform, since.Format("2006-01-02"))
 
+	dojoCohort := database.DojoCohort(*cohort)
+
 	// No custom TimeControlThresholds configured here, so this uses
-	// database.DefaultTimeControlThresholds — the same fallback the real job
-	// uses for any cohort without admin-configured thresholds.
-	requirement := &database.Requirement{
-		Id:                "games-and-analysis",
-		Name:              "Games + Analysis",
+	// database.DefaultTimeControlThresholds — the same fallback the real job uses
+	// for any cohort without admin-configured thresholds. Its id matches the real
+	// production "Classical Games Played" requirement.
+	classicalRequirement := &database.Requirement{
+		Id:              gametracker.ClassicalGamesRequirementId,
+		Name:            "Classical Games Played",
+		Category:        "Games + Analysis",
+		Counts:          map[database.DojoCohort]int{dojoCohort: 100000},
+		NumberOfCohorts: 1,
+		UnitScore:       1,
+	}
+
+	// Rapid games have no real production requirement yet (a sensei must create
+	// one), so this is a representative placeholder for demo purposes only.
+	rapidRequirement := &database.Requirement{
+		Id:                "rapid-games-demo",
+		Name:              "Rapid Games Played",
 		Category:          "Games + Analysis",
 		ScoreboardDisplay: database.ProgressBar,
 		ProgressBarSuffix: " minutes",
-		Counts:            map[database.DojoCohort]int{database.DojoCohort(*cohort): 100000},
+		Counts:            map[database.DojoCohort]int{dojoCohort: 100000},
 		NumberOfCohorts:   1,
 		UnitScore:         0.1,
 	}
@@ -72,16 +86,15 @@ func main() {
 	user := &database.User{
 		Username:    *username,
 		DisplayName: *username,
-		DojoCohort:  database.DojoCohort(*cohort),
+		DojoCohort:  dojoCohort,
 	}
 	repo := newFakeRepository(user)
 	source := *platform
 
-	var totalLoggedMinutes int
-	var loggedCount, skippedCount int
+	var totalLoggedMinutes, classicalGamesLogged, rapidGamesLogged, skippedCount int
 
 	for _, g := range games {
-		class := gametracker.ClassifyGame(g.BaseSeconds, g.IncrementSeconds, database.DojoCohort(*cohort), requirement)
+		class := gametracker.ClassifyGame(g.BaseSeconds, g.IncrementSeconds, dojoCohort, classicalRequirement)
 		estimatedSeconds := gametracker.EstimateGameSeconds(g.BaseSeconds, g.IncrementSeconds)
 		minutes := estimatedSeconds / 60
 		if minutes <= 0 {
@@ -93,53 +106,80 @@ func main() {
 			ratedNote = " (unrated, would be skipped)"
 		}
 
-		willLog := g.Rated && (class == gametracker.Rapid || class == gametracker.Classical)
 		action := "SKIP"
-		if willLog {
-			action = "LOG "
-			totalLoggedMinutes += minutes
-			loggedCount++
-
-			progress := user.Progress[requirement.Id]
-			previousCount := 0
-			if progress != nil {
-				previousCount = progress.Counts[database.AllCohorts]
+		if g.Rated && class == gametracker.Classical {
+			action = "LOG classical (+1 game)"
+			classicalGamesLogged++
+			if err := logClassical(repo, user, classicalRequirement, g, source); err != nil {
+				fmt.Printf("Failed to log classical game %s: %v\n", g.Id, err)
 			}
-
-			_, _, err := progressupdate.UpdateProgressAndLog(repo, user, requirement, &progressupdate.Request{
-				RequirementId:           requirement.Id,
-				Cohort:                  database.DojoCohort(*cohort),
-				PreviousCount:           previousCount,
-				NewCount:                previousCount + minutes,
-				IncrementalMinutesSpent: minutes,
-				Date:                    g.EndTime.Format(time.RFC3339),
-				GameInfo: &database.TimelineGameInfo{
-					Id:         g.Id,
-					AutoLogged: true,
-					Source:     source,
-				},
-			})
-			if err != nil {
-				fmt.Printf("Failed to log game %s: %v\n", g.Id, err)
+		} else if g.Rated && class == gametracker.Rapid {
+			action = fmt.Sprintf("LOG rapid (+%dmin)", minutes)
+			rapidGamesLogged++
+			totalLoggedMinutes += minutes
+			if err := logRapid(repo, user, rapidRequirement, g, source, minutes); err != nil {
+				fmt.Printf("Failed to log rapid game %s: %v\n", g.Id, err)
 			}
 		} else {
 			skippedCount++
 		}
 
-		fmt.Printf("[%s] %s  id=%-20s  tc=%d+%d  ~%dmin  class=%-9s%s\n",
+		fmt.Printf("[%-24s] %s  id=%-20s  tc=%d+%d  ~%dmin  class=%-9s%s\n",
 			action, g.EndTime.Format("2006-01-02 15:04"), g.Id, g.BaseSeconds, g.IncrementSeconds, minutes, class, ratedNote)
 	}
 
-	fmt.Printf("\n%d games would be logged, %d skipped (bullet/blitz/unrated), totaling ~%d minutes on Games + Analysis.\n",
-		loggedCount, skippedCount, totalLoggedMinutes)
+	fmt.Printf("\n%d classical games logged (+1 each to Classical Games Played), %d rapid games logged (~%d total minutes to Rapid), %d skipped (bullet/blitz/unrated).\n",
+		classicalGamesLogged, rapidGamesLogged, totalLoggedMinutes, skippedCount)
 
-	if len(repo.timelineEntries) > 0 {
-		fmt.Println("\n--- Example TimelineEntry that would be created (most recent) ---")
-		last := repo.timelineEntries[len(repo.timelineEntries)-1]
-		encoded, _ := json.MarshalIndent(last, "", "  ")
-		fmt.Println(string(encoded))
-		fmt.Println(strings.Repeat("-", 60))
-		fmt.Println("This is the real, exact struct the sync job would write to DynamoDB and")
-		fmt.Println("that the heatmap/scoreboard/Activity feed would then read.")
+	printEntries(repo, "Classical Games Played", gametracker.ClassicalGamesRequirementId)
+	printEntries(repo, "Rapid", rapidRequirement.Id)
+}
+
+func logClassical(repo *fakeRepository, user *database.User, requirement *database.Requirement, g gametracker.FetchedGame, source string) error {
+	previous := 0
+	if progress := user.Progress[requirement.Id]; progress != nil {
+		previous = progress.Counts[database.AllCohorts]
 	}
+	_, _, err := progressupdate.UpdateProgressAndLog(repo, user, requirement, &progressupdate.Request{
+		RequirementId: requirement.Id,
+		Cohort:        user.DojoCohort,
+		PreviousCount: previous,
+		NewCount:      previous + 1,
+		Date:          g.EndTime.Format(time.RFC3339),
+		GameInfo:      &database.TimelineGameInfo{Id: g.Id, AutoLogged: true, Source: source},
+	})
+	return err
+}
+
+func logRapid(repo *fakeRepository, user *database.User, requirement *database.Requirement, g gametracker.FetchedGame, source string, minutes int) error {
+	previous := 0
+	if progress := user.Progress[requirement.Id]; progress != nil {
+		previous = progress.Counts[database.AllCohorts]
+	}
+	_, _, err := progressupdate.UpdateProgressAndLog(repo, user, requirement, &progressupdate.Request{
+		RequirementId:           requirement.Id,
+		Cohort:                  user.DojoCohort,
+		PreviousCount:           previous,
+		NewCount:                previous + minutes,
+		IncrementalMinutesSpent: minutes,
+		Date:                    g.EndTime.Format(time.RFC3339),
+		GameInfo:                &database.TimelineGameInfo{Id: g.Id, AutoLogged: true, Source: source},
+	})
+	return err
+}
+
+func printEntries(repo *fakeRepository, label, requirementId string) {
+	var last *database.TimelineEntry
+	for _, entry := range repo.timelineEntries {
+		if entry.RequirementId == requirementId {
+			last = entry
+		}
+	}
+	if last == nil {
+		return
+	}
+	fmt.Printf("\n--- Example %s TimelineEntry (most recent) ---\n", label)
+	encoded, _ := json.MarshalIndent(last, "", "  ")
+	fmt.Println(string(encoded))
+	fmt.Println(strings.Repeat("-", 60))
 }
