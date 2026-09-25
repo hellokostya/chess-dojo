@@ -9,6 +9,7 @@ import {
     Requirement,
     RequirementProgress,
     ScoreboardDisplay,
+    formatTime,
     getCurrentCount,
     isRequirement,
 } from '@/database/requirement';
@@ -17,6 +18,7 @@ import {
     Alert,
     Button,
     Checkbox,
+    Chip,
     DialogActions,
     DialogContent,
     DialogContentText,
@@ -34,6 +36,8 @@ import { TaskDialogView } from './TaskDialog';
 
 const NUMBER_REGEX = /^[0-9]*$/;
 const TIME_WARNING_THRESHOLD_MINS = 60 * 5;
+/** The increments offered by the quick-add chips, in minutes. */
+const QUICK_ADD_MINUTES = [15, 30, 60];
 const SECONDS_PER_HOUR = 3600;
 
 interface ProgressUpdaterProps {
@@ -53,6 +57,7 @@ export const ProgressUpdater = ({
 }: ProgressUpdaterProps) => {
     const t = useTranslations('profile.trainingPlan.progressUpdater');
     const tCommon = useTranslations('profile.trainingPlan.common');
+    const tTime = useTranslations('common');
     const { user } = useAuth();
     const api = useApi();
     const { entries, onNewEntry } = useTimelineContext();
@@ -93,6 +98,16 @@ export const ProgressUpdater = ({
     const minutesInt = parseInt(minutes) || 0;
     const totalTime = 60 * hoursInt + minutesInt + (progress?.minutesSpent[cohort] ?? 0);
     const addedTime = 60 * hoursInt + minutesInt;
+
+    /** Adds the given number of minutes to the hours/minutes fields. */
+    const onQuickAdd = (addedMinutes: number) => {
+        const total = 60 * hoursInt + minutesInt + addedMinutes;
+        const newHours = Math.floor(total / 60);
+        const newMinutes = total % 60;
+        setHours(newHours ? `${newHours}` : '');
+        setMinutes(newMinutes ? `${newMinutes}` : '');
+        setErrors({});
+    };
 
     const onSubmit = () => {
         const errors: Record<string, string> = {};
@@ -196,6 +211,28 @@ export const ProgressUpdater = ({
                     />
 
                     <Stack spacing={2}>
+                        <Stack
+                            direction='row'
+                            sx={{
+                                flexWrap: 'wrap',
+                                gap: 1,
+                                alignItems: 'center',
+                            }}
+                        >
+                            {QUICK_ADD_MINUTES.map((quickMinutes) => (
+                                <Chip
+                                    key={quickMinutes}
+                                    label={t('quickAdd', {
+                                        time: formatTime(quickMinutes, tTime),
+                                    })}
+                                    size='small'
+                                    variant='outlined'
+                                    onClick={() => onQuickAdd(quickMinutes)}
+                                    data-testid={`task-updater-quick-add-${quickMinutes}`}
+                                />
+                            ))}
+                        </Stack>
+
                         <Grid
                             container
                             sx={{

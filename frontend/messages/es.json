@@ -149,7 +149,8 @@
                 "commentsPlaceholder": "Comentarios opcionales sobre tu progreso o sobre la tarea en sí. Visibles para los demás en Novedades.",
                 "mustBeNumeric": "Solo se aceptan caracteres numéricos",
                 "mustBeInteger": "Este campo debe ser un número entero",
-                "fieldRequired": "Este campo es obligatorio"
+                "fieldRequired": "Este campo es obligatorio",
+                "moreActions": "Más acciones"
             },
             "inputSlider": {
                 "decrement": "Disminuir",
@@ -157,9 +158,41 @@
                 "progressCount": "Contador de progreso",
                 "count": "Cantidad"
             },
+            "verbs": {
+                "read": "Leer",
+                "watch": "Ver",
+                "solve": "Resolver",
+                "study": "Estudiar",
+                "play": "Jugar",
+                "spar": "Sparring",
+                "annotate": "Anotar",
+                "review": "Revisar"
+            },
+            "quickLog": {
+                "logTraining": "Registrar entrenamiento",
+                "logTooltip": "Registra el tiempo sugerido que queda hoy para esta tarea",
+                "logged": "Se registraron {time} en {name}",
+                "undo": "Deshacer",
+                "edit": "Editar",
+                "dialogTitle": "Registrar tiempo",
+                "confirm": "Registrar",
+                "countCompleted": "{suffix} completados",
+                "incrementCount": "Aumentar cantidad",
+                "decrementCount": "Reducir cantidad",
+                "decrementMinutes": "Reducir minutos",
+                "incrementMinutes": "Aumentar minutos"
+            },
             "daily": {
                 "today": "Hoy",
-                "progressCompleted": "Completado: {current} / {total} {suffix}"
+                "summary": "{done} de {total} tareas hechas · {worked} de {goal}",
+                "allDone": "Terminado por hoy · {worked} registrados",
+                "skippedHeading": "Omitidas esta semana ({count})",
+                "restore": "Restaurar {name}",
+                "skippedToast": "{name} omitida el resto de la semana",
+                "swapTooltip": "Cambiar por otra tarea de {category}",
+                "swapNone": "No hay otras tareas de {category} para cambiar",
+                "swapHeading": "Cambiar por otra tarea de {category}",
+                "swapped": "{from} cambiada por {to}"
             },
             "weekly": {
                 "thisWeek": "Esta semana",
@@ -171,7 +204,17 @@
                 "Fri": "Vie",
                 "Sat": "Sáb",
                 "activeOnlyTooltip": "Mostrar solo las tareas que has actualizado esta semana",
-                "activeOnlyLabel": "Solo activas"
+                "activeOnlyLabel": "Solo activas",
+                "empty": "No hay nada planificado esta semana.",
+                "cellPlanned": "Planificado: {goal}",
+                "cellPartial": "{worked} de {goal} hasta ahora",
+                "cellDone": "Hecho: {worked} de {goal}",
+                "cellMissed": "Perdido: {worked} de {goal}",
+                "cellExtra": "Extra: {worked} registrados, no planificado",
+                "restDay": "Día de descanso",
+                "keyTodo": "Pendiente",
+                "keyDone": "Hecho",
+                "partialTime": "{worked} / {goal}"
             },
             "full": {
                 "heading": "Plan de entrenamiento completo",
@@ -291,7 +334,8 @@
             "progressUpdater": {
                 "markComplete": "¿Marcar como completada?",
                 "totalTime": "Tiempo total: {hours}h {minutes}m",
-                "largeTimeWarning": "¡Estás añadiendo mucho tiempo! Revisa bien los datos antes de guardar."
+                "largeTimeWarning": "¡Estás añadiendo mucho tiempo! Revisa bien los datos antes de guardar.",
+                "quickAdd": "+{time}"
             },
             "scheduleGame": {
                 "title": "Programa tu próxima partida clásica",
@@ -312,7 +356,8 @@
                 "countRequired": "Este campo es obligatorio",
                 "countNumeric": "Solo se aceptan caracteres numéricos",
                 "countMinOne": "Se requiere al menos una partida",
-                "deleteEntry": "Eliminar"
+                "deleteEntry": "Eliminar",
+                "scheduleAction": "Programar"
             },
             "taskDialog": {
                 "historyTitle": "Historial de {name}",
@@ -348,7 +393,7 @@
                 "taskLockedUntil": "Esta tarea está bloqueada hasta que completes {category} - {name}."
             },
             "miniScoreboard": {
-                "heading": "Mini tabla de clasificación",
+                "heading": "Tabla de clasificación",
                 "type": "Tipo",
                 "dojoScore": "Puntuación Dojo",
                 "trainingTime": "Tiempo de entrenamiento",
@@ -490,7 +535,10 @@
                 "legendMinutesRange": "{minValue} – {maxValue}",
                 "legendDojoPointsRange": "{minValue} – {maxValue} puntos Dojo",
                 "legendMinutesMax": "{value}+",
-                "legendDojoPointsMax": "{value}+ puntos Dojo"
+                "legendDojoPointsMax": "{value}+ puntos Dojo",
+                "settings": "Ajustes del mapa de calor",
+                "legend": "Qué significan los colores",
+                "title": "Mapa de calor"
             }
         },
         "directories": {
@@ -1458,7 +1506,8 @@
             "dojoScore": "Puntuación Dojo",
             "gamesAnnotated": "Partidas anotadas",
             "date": "Fecha"
-        }
+        },
+        "comment": "Comentar"
     },
     "tutorial": {
         "back": "Atrás",

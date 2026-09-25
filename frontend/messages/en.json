@@ -149,7 +149,8 @@
                 "commentsPlaceholder": "Optional comments about your progress or the task itself. Visible to others on the newsfeed.",
                 "mustBeNumeric": "Only numeric characters are accepted",
                 "mustBeInteger": "This field must be an integer",
-                "fieldRequired": "This field is required"
+                "fieldRequired": "This field is required",
+                "moreActions": "More actions"
             },
             "inputSlider": {
                 "decrement": "Decrement",
@@ -157,9 +158,41 @@
                 "progressCount": "Progress count",
                 "count": "Count"
             },
+            "verbs": {
+                "read": "Read",
+                "watch": "Watch",
+                "solve": "Solve",
+                "study": "Study",
+                "play": "Play",
+                "spar": "Spar",
+                "annotate": "Annotate",
+                "review": "Review"
+            },
+            "quickLog": {
+                "logTraining": "Log training",
+                "logTooltip": "Record today's remaining suggested time for this task",
+                "logged": "Logged {time} on {name}",
+                "undo": "Undo",
+                "edit": "Edit",
+                "dialogTitle": "Log time",
+                "confirm": "Log",
+                "countCompleted": "{suffix} completed",
+                "incrementCount": "Increase count",
+                "decrementCount": "Decrease count",
+                "decrementMinutes": "Decrease minutes",
+                "incrementMinutes": "Increase minutes"
+            },
             "daily": {
                 "today": "Today",
-                "progressCompleted": "{current} / {total} {suffix} completed"
+                "summary": "{done} of {total} tasks done · {worked} of {goal}",
+                "allDone": "Done for today · {worked} logged",
+                "skippedHeading": "Skipped this week ({count})",
+                "restore": "Restore {name}",
+                "skippedToast": "Skipped {name} for the rest of the week",
+                "swapTooltip": "Swap for another {category} task",
+                "swapNone": "No other {category} tasks to swap in",
+                "swapHeading": "Swap for another {category} task",
+                "swapped": "Swapped {from} for {to}"
             },
             "weekly": {
                 "thisWeek": "This Week",
@@ -171,7 +204,17 @@
                 "Fri": "Fri",
                 "Sat": "Sat",
                 "activeOnlyTooltip": "Only show tasks you have updated this week",
-                "activeOnlyLabel": "Active Only"
+                "activeOnlyLabel": "Active Only",
+                "empty": "Nothing planned this week.",
+                "cellPlanned": "Planned: {goal}",
+                "cellPartial": "{worked} of {goal} so far",
+                "cellDone": "Done: {worked} of {goal}",
+                "cellMissed": "Missed: {worked} of {goal}",
+                "cellExtra": "Extra: {worked} logged, not planned",
+                "restDay": "Rest day",
+                "keyTodo": "To do",
+                "keyDone": "Done",
+                "partialTime": "{worked} / {goal}"
             },
             "full": {
                 "heading": "Full Training Plan",
@@ -291,7 +334,8 @@
             "progressUpdater": {
                 "markComplete": "Mark as Completed?",
                 "totalTime": "Total Time: {hours}h {minutes}m",
-                "largeTimeWarning": "You're adding a lot of time! Please double-check your input before saving."
+                "largeTimeWarning": "You're adding a lot of time! Please double-check your input before saving.",
+                "quickAdd": "+{time}"
             },
             "scheduleGame": {
                 "title": "Schedule Your Next Classical Game",
@@ -312,7 +356,8 @@
                 "countRequired": "This field is required",
                 "countNumeric": "Only numeric characters are accepted",
                 "countMinOne": "At least one game is required",
-                "deleteEntry": "Delete"
+                "deleteEntry": "Delete",
+                "scheduleAction": "Schedule"
             },
             "taskDialog": {
                 "historyTitle": "{name} History",
@@ -348,7 +393,7 @@
                 "taskLockedUntil": "This task is locked until you complete {category} - {name}."
             },
             "miniScoreboard": {
-                "heading": "Mini Scoreboard",
+                "heading": "Scoreboard",
                 "type": "Type",
                 "dojoScore": "Dojo Score",
                 "trainingTime": "Training Time",
@@ -490,7 +535,10 @@
                 "legendMinutesRange": "{minValue} – {maxValue}",
                 "legendDojoPointsRange": "{minValue} – {maxValue} Dojo points",
                 "legendMinutesMax": "{value}+",
-                "legendDojoPointsMax": "{value}+ Dojo points"
+                "legendDojoPointsMax": "{value}+ Dojo points",
+                "settings": "Heatmap settings",
+                "legend": "What the colours mean",
+                "title": "Heatmap"
             }
         },
         "directories": {
@@ -1458,7 +1506,8 @@
             "dojoScore": "Dojo Score",
             "gamesAnnotated": "Games Annotated",
             "date": "Date"
-        }
+        },
+        "comment": "Comment"
     },
     "tutorial": {
         "back": "Back",

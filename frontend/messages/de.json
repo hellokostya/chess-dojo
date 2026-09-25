@@ -149,7 +149,8 @@
                 "commentsPlaceholder": "Optionale Kommentare zu deinem Fortschritt oder der Aufgabe selbst. Für andere im Newsfeed sichtbar.",
                 "mustBeNumeric": "Nur Ziffern sind erlaubt",
                 "mustBeInteger": "Dieses Feld muss eine Ganzzahl sein",
-                "fieldRequired": "Dieses Feld ist erforderlich"
+                "fieldRequired": "Dieses Feld ist erforderlich",
+                "moreActions": "Weitere Aktionen"
             },
             "inputSlider": {
                 "decrement": "Verringern",
@@ -157,9 +158,41 @@
                 "progressCount": "Fortschrittsanzahl",
                 "count": "Anzahl"
             },
+            "verbs": {
+                "read": "Lesen",
+                "watch": "Ansehen",
+                "solve": "Lösen",
+                "study": "Studieren",
+                "play": "Spielen",
+                "spar": "Sparring",
+                "annotate": "Kommentieren",
+                "review": "Analysieren"
+            },
+            "quickLog": {
+                "logTraining": "Training eintragen",
+                "logTooltip": "Die heute noch vorgeschlagene Zeit für diese Aufgabe eintragen",
+                "logged": "{time} für {name} eingetragen",
+                "undo": "Rückgängig",
+                "edit": "Bearbeiten",
+                "dialogTitle": "Zeit eintragen",
+                "confirm": "Eintragen",
+                "countCompleted": "{suffix} abgeschlossen",
+                "incrementCount": "Anzahl erhöhen",
+                "decrementCount": "Anzahl verringern",
+                "decrementMinutes": "Minuten verringern",
+                "incrementMinutes": "Minuten erhöhen"
+            },
             "daily": {
                 "today": "Heute",
-                "progressCompleted": "{current} / {total} {suffix} abgeschlossen"
+                "summary": "{done} von {total} Aufgaben erledigt · {worked} von {goal}",
+                "allDone": "Fertig für heute · {worked} eingetragen",
+                "skippedHeading": "Diese Woche übersprungen ({count})",
+                "restore": "{name} wiederherstellen",
+                "skippedToast": "{name} für den Rest der Woche übersprungen",
+                "swapTooltip": "Gegen eine andere {category}-Aufgabe tauschen",
+                "swapNone": "Keine andere {category}-Aufgabe zum Tauschen",
+                "swapHeading": "Gegen eine andere {category}-Aufgabe tauschen",
+                "swapped": "{from} gegen {to} getauscht"
             },
             "weekly": {
                 "thisWeek": "Diese Woche",
@@ -171,7 +204,17 @@
                 "Fri": "Fr",
                 "Sat": "Sa",
                 "activeOnlyTooltip": "Nur Aufgaben anzeigen, die du diese Woche aktualisiert hast",
-                "activeOnlyLabel": "Nur aktiv"
+                "activeOnlyLabel": "Nur aktiv",
+                "empty": "Diese Woche ist nichts geplant.",
+                "cellPlanned": "Geplant: {goal}",
+                "cellPartial": "Bisher {worked} von {goal}",
+                "cellDone": "Erledigt: {worked} von {goal}",
+                "cellMissed": "Verpasst: {worked} von {goal}",
+                "cellExtra": "Zusätzlich: {worked} eingetragen, nicht geplant",
+                "restDay": "Ruhetag",
+                "keyTodo": "Offen",
+                "keyDone": "Erledigt",
+                "partialTime": "{worked} / {goal}"
             },
             "full": {
                 "heading": "Vollständiger Trainingsplan",
@@ -291,7 +334,8 @@
             "progressUpdater": {
                 "markComplete": "Als abgeschlossen markieren?",
                 "totalTime": "Gesamtzeit: {hours}h {minutes}m",
-                "largeTimeWarning": "Du gibst viel Zeit ein! Bitte überprüfe deine Eingabe vor dem Speichern."
+                "largeTimeWarning": "Du gibst viel Zeit ein! Bitte überprüfe deine Eingabe vor dem Speichern.",
+                "quickAdd": "+{time}"
             },
             "scheduleGame": {
                 "title": "Plane deine nächste klassische Partie",
@@ -312,7 +356,8 @@
                 "countRequired": "Dieses Feld ist erforderlich",
                 "countNumeric": "Nur numerische Zeichen werden akzeptiert",
                 "countMinOne": "Mindestens ein Spiel ist erforderlich",
-                "deleteEntry": "Löschen"
+                "deleteEntry": "Löschen",
+                "scheduleAction": "Planen"
             },
             "taskDialog": {
                 "historyTitle": "{name} Verlauf",
@@ -348,7 +393,7 @@
                 "taskLockedUntil": "Diese Aufgabe ist gesperrt, bis du {category} - {name} abgeschlossen hast."
             },
             "miniScoreboard": {
-                "heading": "Mini-Anzeigetafel",
+                "heading": "Anzeigetafel",
                 "type": "Typ",
                 "dojoScore": "Dojo Bewertung",
                 "trainingTime": "Trainingszeit",
@@ -490,7 +535,10 @@
                 "legendMinutesRange": "{minValue} - {maxValue}",
                 "legendDojoPointsRange": "{minValue} - {maxValue} Dojo Punkte",
                 "legendMinutesMax": "{value}+",
-                "legendDojoPointsMax": "{value}+ Dojo Punkte"
+                "legendDojoPointsMax": "{value}+ Dojo Punkte",
+                "settings": "Heatmap-Einstellungen",
+                "legend": "Was die Farben bedeuten",
+                "title": "Heatmap"
             }
         },
         "directories": {
@@ -1458,7 +1506,8 @@
             "dojoScore": "Dojo Punktzahl",
             "gamesAnnotated": "Kommentierte Spiele",
             "date": "Datum"
-        }
+        },
+        "comment": "Kommentieren"
     },
     "tutorial": {
         "back": "Zurück",
