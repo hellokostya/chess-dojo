@@ -35,6 +35,7 @@ export const HeatmapCard = ({ workGoalHistory }: { workGoalHistory: WorkGoalHist
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [blockSize, setBlockSize] = useState(MIN_BLOCK_SIZE);
     const t = useTranslations('profile.info');
+    const tHeatmap = useTranslations('profile.info.heatmap');
 
     const resizeDialogBlocks = useCallback(() => {
         if (isModalOpen) {
@@ -52,7 +53,8 @@ export const HeatmapCard = ({ workGoalHistory }: { workGoalHistory: WorkGoalHist
                     <Heatmap
                         entries={entries}
                         onPopOut={() => setIsModalOpen(true)}
-                        description=''
+                        description={t('pastYear')}
+                        title={tHeatmap('title')}
                         workGoalHistory={workGoalHistory}
                     />
                 </CardContent>
@@ -93,6 +95,7 @@ export const HeatmapCard = ({ workGoalHistory }: { workGoalHistory: WorkGoalHist
                         entries={entries}
                         blockSize={blockSize}
                         description={t('pastYear')}
+                        title={tHeatmap('title')}
                         workGoalHistory={workGoalHistory}
                     />
                 </DialogContent>
