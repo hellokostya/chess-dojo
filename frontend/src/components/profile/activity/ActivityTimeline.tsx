@@ -1,9 +1,9 @@
 import { Request, RequestSnackbar } from '@/api/Request';
 import { useFilters } from '@/components/calendar/filters/CalendarFilters';
 import { DefaultTimezone } from '@/components/calendar/filters/TimezoneSelector';
+import { CompactEntryHeader, CompactNewsfeedItem } from '@/components/newsfeed/CompactNewsfeedItem';
 import LoadMoreButton from '@/components/newsfeed/LoadMoreButton';
-import NewsfeedItem, { isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
-import NewsfeedItemHeader from '@/components/newsfeed/NewsfeedItemHeader';
+import { isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
 import {
     AllCategoriesFilterName,
     FilterOptions,
@@ -22,6 +22,7 @@ import {
     Box,
     Card,
     CardContent,
+    Divider,
     Stack,
     ToggleButton,
     ToggleButtonGroup,
@@ -70,14 +71,10 @@ const CreatedAtItem: React.FC<{ user: User }> = ({ user }) => {
     };
 
     return (
-        <Card variant='outlined'>
-            <CardContent>
-                <Stack>
-                    <NewsfeedItemHeader entry={entry as TimelineEntry} />
-                    <Typography>{t('joinedTheDojoBang')}</Typography>
-                </Stack>
-            </CardContent>
-        </Card>
+        <Stack spacing={1.25}>
+            <CompactEntryHeader entry={entry as TimelineEntry} />
+            <Typography variant='body2'>{t('joinedTheDojoBang')}</Typography>
+        </Stack>
     );
 };
 
@@ -234,15 +231,22 @@ const ActivityTimelineList = ({
 }) => {
     return (
         <Stack spacing={3}>
-            {entries.slice(0, numShown).map((entry, i) => (
-                <NewsfeedItem
-                    key={entry.id}
-                    entry={entry}
-                    onEdit={(e) => onEdit(i, e)}
-                    maxComments={3}
-                    onChangeActivity={setEditEntry}
-                />
-            ))}
+            <Card variant='outlined'>
+                <CardContent>
+                    <Stack divider={<Divider flexItem />} spacing={2.5}>
+                        {entries.slice(0, numShown).map((entry, i) => (
+                            <CompactNewsfeedItem
+                                key={entry.id}
+                                entry={entry}
+                                onEdit={(e) => onEdit(i, e)}
+                                maxComments={3}
+                                onChangeActivity={setEditEntry}
+                            />
+                        ))}
+                        {!hasMore && numShown >= entries.length && <CreatedAtItem user={user} />}
+                    </Stack>
+                </CardContent>
+            </Card>
 
             {(hasMore || numShown < entries.length) && (
                 <LoadMoreButton
@@ -251,8 +255,6 @@ const ActivityTimelineList = ({
                     request={request}
                 />
             )}
-
-            <CreatedAtItem user={user} />
         </Stack>
     );
 };
@@ -321,14 +323,18 @@ const ActivityTimelineCalendar = ({
     const CustomEventViewer = useCallback(
         ({ event }: { event: ProcessedEvent }) => {
             return event.entry ? (
-                <NewsfeedItem
-                    entry={event.entry as TimelineEntry}
-                    onEdit={(e) => onEdit(entries.indexOf(event.entry as TimelineEntry), e)}
-                    maxComments={3}
-                    onChangeActivity={setEditEntry}
-                />
+                <Box sx={{ p: 2 }}>
+                    <CompactNewsfeedItem
+                        entry={event.entry as TimelineEntry}
+                        onEdit={(e) => onEdit(entries.indexOf(event.entry as TimelineEntry), e)}
+                        maxComments={3}
+                        onChangeActivity={setEditEntry}
+                    />
+                </Box>
             ) : event.user ? (
-                <CreatedAtItem user={event.user as User} />
+                <Box sx={{ p: 2 }}>
+                    <CreatedAtItem user={event.user as User} />
+                </Box>
             ) : (
                 <></>
             );

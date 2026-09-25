@@ -4,10 +4,11 @@ import { useApi } from '@/api/Api';
 import { useRequest } from '@/api/Request';
 import { ListNewsfeedResponse } from '@/api/newsfeedApi';
 import { useAuth } from '@/auth/Auth';
-import NewsfeedItem, { isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
+import { CompactNewsfeedItem } from '@/components/newsfeed/CompactNewsfeedItem';
+import { isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
 import { TimelineEntry } from '@/database/timeline';
 import { Feed, OpenInNew } from '@mui/icons-material';
-import { Button, Card, CardContent, Skeleton, Stack, Typography } from '@mui/material';
+import { Button, Card, CardContent, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -84,14 +85,16 @@ export function NewsfeedCard() {
                         </Stack>
                     )}
 
-                    {entries.map((entry) => (
-                        <NewsfeedItem
-                            key={entry.id}
-                            entry={entry}
-                            onEdit={onEdit}
-                            maxComments={MAX_COMMENTS}
-                        />
-                    ))}
+                    <Stack divider={<Divider flexItem />} spacing={2}>
+                        {entries.map((entry) => (
+                            <CompactNewsfeedItem
+                                key={entry.id}
+                                entry={entry}
+                                onEdit={onEdit}
+                                maxComments={MAX_COMMENTS}
+                            />
+                        ))}
+                    </Stack>
 
                     {!request.isLoading() && entries.length === 0 && (
                         <Typography
