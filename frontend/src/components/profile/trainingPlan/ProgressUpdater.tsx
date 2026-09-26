@@ -242,25 +242,6 @@ export const ProgressUpdater = ({
                                 alignItems: 'center',
                             }}
                         >
-                            <IconButton
-                                size='small'
-                                aria-label={t('removeTime')}
-                                disabled={addedTime <= -previousTime}
-                                onClick={() => onQuickAdd(-TIME_STEP_MINUTES)}
-                                sx={{ border: 1, borderColor: 'divider' }}
-                                data-testid='task-updater-remove-time'
-                            >
-                                <Remove fontSize='small' />
-                            </IconButton>
-                            <IconButton
-                                size='small'
-                                aria-label={t('addTime')}
-                                onClick={() => onQuickAdd(TIME_STEP_MINUTES)}
-                                sx={{ border: 1, borderColor: 'divider', mr: 0.5 }}
-                                data-testid='task-updater-add-time'
-                            >
-                                <Add fontSize='small' />
-                            </IconButton>
                             {QUICK_ADD_MINUTES.map((quickMinutes) => (
                                 <Chip
                                     key={quickMinutes}
@@ -331,6 +312,27 @@ export const ProgressUpdater = ({
                                 />
                             </Grid>
                         </Grid>
+                        <Stack direction='row' sx={{ gap: 1 }}>
+                            <IconButton
+                                size='small'
+                                aria-label={t('removeTime')}
+                                disabled={addedTime <= -previousTime}
+                                onClick={() => onQuickAdd(-TIME_STEP_MINUTES)}
+                                sx={{ border: 1, borderColor: 'divider' }}
+                                data-testid='task-updater-remove-time'
+                            >
+                                <Remove fontSize='small' />
+                            </IconButton>
+                            <IconButton
+                                size='small'
+                                aria-label={t('addTime')}
+                                onClick={() => onQuickAdd(TIME_STEP_MINUTES)}
+                                sx={{ border: 1, borderColor: 'divider' }}
+                                data-testid='task-updater-add-time'
+                            >
+                                <Add fontSize='small' />
+                            </IconButton>
+                        </Stack>
                         <DialogContentText>
                             {t('totalTime', {
                                 hours: Math.floor(totalTime / 60),
