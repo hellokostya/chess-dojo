@@ -89,7 +89,7 @@ export function Stepper({
                 />
                 {unit && (
                     <Typography
-                        sx={{ fontSize: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}
+                        sx={{ fontSize: 'inherit', color: 'text.primary', whiteSpace: 'nowrap' }}
                     >
                         {unit}
                     </Typography>

@@ -296,7 +296,7 @@ export const ProgressUpdater = ({
                                             minWidth: 0,
                                             borderRadius: 2,
                                             borderColor: 'divider',
-                                            color: 'text.secondary',
+                                            color: 'text.primary',
                                             textTransform: 'none',
                                         }}
                                         data-testid={`task-updater-quick-add-${quickMinutes}`}
@@ -350,7 +350,7 @@ export const ProgressUpdater = ({
                             color='inherit'
                             onClick={() => setView(TaskDialogView.Details)}
                             disabled={request.isLoading()}
-                            sx={{ color: 'text.secondary', textTransform: 'none', px: 1 }}
+                            sx={{ color: 'text.primary', textTransform: 'none', px: 1 }}
                         >
                             {tCommon('taskDetails')}
                         </Button>
@@ -359,7 +359,7 @@ export const ProgressUpdater = ({
                             data-testid='task-updater-show-history-button'
                             onClick={() => setView(TaskDialogView.History)}
                             disabled={request.isLoading()}
-                            sx={{ color: 'text.secondary', textTransform: 'none', px: 1 }}
+                            sx={{ color: 'text.primary', textTransform: 'none', px: 1 }}
                         >
                             {tCommon('showHistory')}
                         </Button>
@@ -367,6 +367,7 @@ export const ProgressUpdater = ({
                 )}
                 <Box sx={{ flexGrow: 1 }} />
                 <Button
+                    color='inherit'
                     onClick={onClose}
                     disabled={request.isLoading()}
                     sx={{ textTransform: 'none' }}
@@ -424,9 +425,7 @@ function FormRow({
             <Stack spacing={0.25} sx={{ minHeight: 40, justifyContent: 'center' }}>
                 <SectionLabel>{label}</SectionLabel>
                 {caption && (
-                    <Typography
-                        sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}
-                    >
+                    <Typography sx={{ color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
                         {caption}
                     </Typography>
                 )}
