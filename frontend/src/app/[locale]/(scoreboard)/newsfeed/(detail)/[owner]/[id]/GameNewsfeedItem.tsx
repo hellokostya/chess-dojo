@@ -52,6 +52,8 @@ const GameNewsfeedItem: React.FC<GameNewsfeedItemProps> = ({ entry }) => {
                 component={Link}
                 href={gameUrl}
                 sx={{
+                    // Game-sized rather than column-wide on larger screens.
+                    maxWidth: 360,
                     border: 1,
                     borderColor: 'divider',
                     borderRadius: 2,
