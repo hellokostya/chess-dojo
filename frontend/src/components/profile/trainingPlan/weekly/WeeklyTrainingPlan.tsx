@@ -237,7 +237,6 @@ function WeekCalendar({
                     onOpenTask={onOpenTask}
                 />
             ))}
-            <WeekCalendarKey />
         </Box>
     );
 }
@@ -260,11 +259,12 @@ function CategoryTotals({ totals }: { totals: CategoryTotal[] }) {
         >
             {totals.map((total) => {
                 const color = CategoryColors[total.category];
-                const done = total.goalMinutes > 0 && total.workedMinutes >= total.goalMinutes;
+                // Unplanned work in a category counts as meeting its (zero) goal.
+                const done = total.workedMinutes >= total.goalMinutes;
                 const percent =
                     total.goalMinutes > 0
                         ? Math.min(100, (100 * total.workedMinutes) / total.goalMinutes)
-                        : 0;
+                        : 100;
                 const worked = formatTime(total.workedMinutes, tTime);
                 return (
                     <Box
@@ -300,7 +300,7 @@ function CategoryTotals({ totals }: { totals: CategoryTotal[] }) {
                                 backgroundColor: 'action.hover',
                                 '& .MuiLinearProgress-bar': {
                                     borderRadius: 4,
-                                    backgroundColor: done ? 'success.main' : color,
+                                    backgroundColor: color,
                                 },
                             }}
                         />
@@ -312,54 +312,14 @@ function CategoryTotals({ totals }: { totals: CategoryTotal[] }) {
                                 fontVariantNumeric: 'tabular-nums',
                                 whiteSpace: 'nowrap',
                                 textAlign: 'right',
-                                color: done ? 'success.main' : 'text.secondary',
+                                color: done ? color : 'text.secondary',
                             }}
                         >
-                            {total.goalMinutes > 0
-                                ? `${worked} / ${formatTime(total.goalMinutes, tTime)}`
-                                : `+${worked}`}
+                            {`${worked} / ${formatTime(total.goalMinutes, tTime)}`}
                         </Typography>
                     </Box>
                 );
             })}
-        </Stack>
-    );
-}
-
-/** Explains the task line styles. Past days are faded, which needs no key. */
-function WeekCalendarKey() {
-    const t = useTranslations('profile.trainingPlan.weekly');
-    const swatch = (sx: object) => (
-        <Box sx={{ width: 10, height: 10, borderRadius: 0.5, flexShrink: 0, ...sx }} />
-    );
-
-    return (
-        <Stack
-            direction='row'
-            sx={{
-                gridColumn: '1 / -1',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                columnGap: 2,
-                rowGap: 0.5,
-                pt: 1,
-                px: 0.75,
-                color: 'text.secondary',
-            }}
-            data-testid='weekly-key'
-        >
-            <Stack direction='row' sx={{ alignItems: 'center', gap: 0.75 }}>
-                {swatch({
-                    backgroundColor: 'action.selected',
-                    borderLeft: 3,
-                    borderColor: 'text.secondary',
-                })}
-                <Typography variant='caption'>{t('keyTodo')}</Typography>
-            </Stack>
-            <Stack direction='row' sx={{ alignItems: 'center', gap: 0.5 }}>
-                <Check sx={{ fontSize: '0.85rem', color: 'success.main' }} />
-                <Typography variant='caption'>{t('keyDone')}</Typography>
-            </Stack>
         </Stack>
     );
 }
@@ -511,9 +471,7 @@ function WeekCalendarChip({
                     backgroundColor: alpha(color, 0.12),
                     color: theme.palette.text.primary,
                     ...(looksDone && {
-                        backgroundColor: alpha(theme.palette.success.main, 0.16),
-                        borderLeftColor: theme.palette.success.main,
-                        color: theme.palette.text.secondary,
+                        backgroundColor: alpha(color, 0.38),
                     }),
                     ...(state === 'missed' && {
                         backgroundColor: 'transparent',
@@ -532,9 +490,7 @@ function WeekCalendarChip({
                         }}
                     />
                 )}
-                {looksDone && (
-                    <Check sx={{ fontSize: '0.85rem', color: 'success.main', zIndex: 1 }} />
-                )}
+                {looksDone && <Check sx={{ fontSize: '0.85rem', color, zIndex: 1 }} />}
                 {verb && (
                     <Box sx={{ zIndex: 1, display: 'flex' }}>
                         <TaskVerbIcon verb={verb} size='0.95rem' />

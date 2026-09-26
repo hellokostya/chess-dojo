@@ -212,8 +212,6 @@
                 "cellMissed": "Manqué : {worked} sur {goal}",
                 "cellExtra": "En plus : {worked} enregistré, non prévu",
                 "restDay": "Jour de repos",
-                "keyTodo": "À faire",
-                "keyDone": "Fait",
                 "partialTime": "{worked} / {goal}"
             },
             "full": {

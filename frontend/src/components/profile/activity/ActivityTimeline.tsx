@@ -22,7 +22,6 @@ import {
     Box,
     Card,
     CardContent,
-    Divider,
     Stack,
     ToggleButton,
     ToggleButtonGroup,
@@ -231,22 +230,27 @@ const ActivityTimelineList = ({
 }) => {
     return (
         <Stack spacing={3}>
-            <Card variant='outlined'>
-                <CardContent>
-                    <Stack divider={<Divider flexItem />} spacing={2.5}>
-                        {entries.slice(0, numShown).map((entry, i) => (
+            <Stack spacing={1.5}>
+                {entries.slice(0, numShown).map((entry, i) => (
+                    <Card key={entry.id} variant='outlined'>
+                        <CardContent>
                             <CompactNewsfeedItem
-                                key={entry.id}
                                 entry={entry}
                                 onEdit={(e) => onEdit(i, e)}
                                 maxComments={3}
                                 onChangeActivity={setEditEntry}
                             />
-                        ))}
-                        {!hasMore && numShown >= entries.length && <CreatedAtItem user={user} />}
-                    </Stack>
-                </CardContent>
-            </Card>
+                        </CardContent>
+                    </Card>
+                ))}
+                {!hasMore && numShown >= entries.length && (
+                    <Card variant='outlined'>
+                        <CardContent>
+                            <CreatedAtItem user={user} />
+                        </CardContent>
+                    </Card>
+                )}
+            </Stack>
 
             {(hasMore || numShown < entries.length) && (
                 <LoadMoreButton

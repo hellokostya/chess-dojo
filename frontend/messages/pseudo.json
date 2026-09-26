@@ -212,8 +212,6 @@
                 "cellMissed": "[T] Missed: {worked} of {goal}",
                 "cellExtra": "[T] Extra: {worked} logged, not planned",
                 "restDay": "[T] Rest day",
-                "keyTodo": "[T] To do",
-                "keyDone": "[T] Done",
                 "partialTime": "[T] {worked} / {goal}"
             },
             "full": {

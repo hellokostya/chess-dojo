@@ -86,6 +86,9 @@ export const HeatmapCard = ({ workGoalHistory }: { workGoalHistory: WorkGoalHist
 
                 <DialogContent
                     sx={{
+                        // Room for the close button, so it doesn't crowd the heatmap's
+                        // own info, settings and expand icons.
+                        pt: 7,
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
