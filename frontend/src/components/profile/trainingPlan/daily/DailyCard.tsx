@@ -3,8 +3,7 @@ import { CategoryColors } from '@/style/ThemeProvider';
 import { Check } from '@mui/icons-material';
 import { alpha, Box, ButtonBase, SxProps, Theme, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
-import { TaskVerb } from '../taskVerb';
-import { TaskVerbIcon } from '../TaskVerbIcon';
+import { TrainingPlanIcon } from '../TrainingPlanIcon';
 
 /**
  * The frame shared by every card in Today: a soft rounded card with a quiet border
@@ -37,6 +36,9 @@ export function dailyCardSx(isComplete: boolean): SxProps<Theme> {
  * level across cards whether or not the row also holds the 40px timer button.
  */
 export const dailyCardActionsSx: SxProps<Theme> = {
+    // Longer translations of the button text wrap the time onto its own line
+    // rather than pushing it past the card's edge.
+    flexWrap: 'wrap',
     gap: 0.75,
     px: 2.5,
     pt: 0.5,
@@ -57,36 +59,16 @@ export const dailyPrimaryButtonSx: SxProps<Theme> = {
 };
 
 /**
- * A task's category as a small label, led by a coloured dot, or by the task's verb
- * icon when it has one ("Read", "Watch"), which keeps the title below flush left.
+ * A task's category as a small label, led by the category's icon from the full
+ * training plan.
  */
-export function CategoryLabel({
-    category,
-    verb,
-}: {
-    category: RequirementCategory;
-    verb?: TaskVerb;
-}) {
+export function CategoryLabel({ category }: { category: RequirementCategory }) {
     const tCategory = useTranslations('enums.requirementCategory');
     const color = CategoryColors[category];
 
     return (
         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-            {verb ? (
-                <Box sx={{ display: 'flex', color, '& [role=img]': { color: 'inherit' } }}>
-                    <TaskVerbIcon verb={verb} size='1rem' />
-                </Box>
-            ) : (
-                <Box
-                    sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: color,
-                        flexShrink: 0,
-                    }}
-                />
-            )}
+            <TrainingPlanIcon category={category} sx={{ fontSize: '1rem', color }} />
             <Typography
                 variant='caption'
                 sx={{

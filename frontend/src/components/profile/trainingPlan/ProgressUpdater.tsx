@@ -46,6 +46,8 @@ interface ProgressUpdaterProps {
     cohort: string;
     onClose: () => void;
     setView?: (view: TaskDialogView) => void;
+    /** Time to prefill when no timer is running for this task, in minutes. */
+    initialMinutes?: number;
 }
 
 export const ProgressUpdater = ({
@@ -54,6 +56,7 @@ export const ProgressUpdater = ({
     cohort,
     onClose,
     setView,
+    initialMinutes,
 }: ProgressUpdaterProps) => {
     const t = useTranslations('profile.trainingPlan.progressUpdater');
     const tCommon = useTranslations('profile.trainingPlan.common');
@@ -75,6 +78,10 @@ export const ProgressUpdater = ({
     if (timerTask && timerTask.id !== requirement.id) {
         timerHours = 0;
         timerMinutes = 0;
+    }
+    if (!timerHours && !timerMinutes && initialMinutes) {
+        timerHours = Math.floor(initialMinutes / 60);
+        timerMinutes = initialMinutes % 60;
     }
     const [hours, setHours] = useState(timerHours ? `${timerHours}` : '');
     const [minutes, setMinutes] = useState(timerMinutes ? `${timerMinutes}` : '');

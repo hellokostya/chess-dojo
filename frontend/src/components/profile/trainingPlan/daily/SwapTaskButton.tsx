@@ -1,4 +1,5 @@
 import { CustomTask, Requirement } from '@/database/requirement';
+import { CategoryColors } from '@/style/ThemeProvider';
 import { getSubscriptionTier } from '@jackstenglein/chess-dojo-common/src/database/user';
 import { SwapHoriz } from '@mui/icons-material';
 import {
@@ -16,20 +17,21 @@ import { useTranslations } from 'next-intl';
 import { use, useMemo, useState } from 'react';
 import { getSwapCandidates } from '../swapTask';
 import { taskDisplayName } from '../taskDisplayName';
-import { splitTaskVerb } from '../taskVerb';
-import { TaskVerbIcon } from '../TaskVerbIcon';
+import { TrainingPlanIcon } from '../TrainingPlanIcon';
 import { TrainingPlanContext } from '../TrainingPlanTab';
 
-/** The label for a task in the swap list: its verb as an icon, and the rest. */
+/** The label for a task in the swap list: its category icon and name. */
 function SwapOption({ task, cohort }: { task: Requirement | CustomTask; cohort: string }) {
-    const { verb, rest } = splitTaskVerb(taskDisplayName({ task, cohort }));
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
             <Box sx={{ width: 18, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-                {verb && <TaskVerbIcon verb={verb} size='1rem' />}
+                <TrainingPlanIcon
+                    category={task.category}
+                    sx={{ fontSize: '1rem', color: CategoryColors[task.category] }}
+                />
             </Box>
             <Typography variant='body2' noWrap>
-                {rest}
+                {taskDisplayName({ task, cohort })}
             </Typography>
         </Box>
     );
@@ -126,7 +128,7 @@ export function SwapUndoSnackbar() {
             user.customTasks?.find((c) => c.id === id) ??
             requirements.find((r) => r.id === id) ??
             allRequirements.find((r) => r.id === id);
-        return task ? splitTaskVerb(taskDisplayName({ task, cohort: user.dojoCohort })).rest : '';
+        return task ? taskDisplayName({ task, cohort: user.dojoCohort }) : '';
     };
 
     return (

@@ -1,4 +1,3 @@
-import { RequestSnackbar } from '@/api/Request';
 import {
     CustomTask,
     formatTime,
@@ -41,17 +40,13 @@ import { useTranslations } from 'next-intl';
 import { use, useMemo, useState } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
 import { displayProgress } from '../full/FullTrainingPlanItem';
-import { QuickLogDialog, QuickLogSubmission } from '../QuickLogDialog';
-import { QuickLogSnackbar } from '../QuickLogSnackbar';
 import { ScheduleClassicalGameDaily } from '../ScheduleClassicalGame';
 import { GRADUATION_SKIP_ID } from '../skippedTasks';
 import { SCHEDULE_CLASSICAL_GAME_TASK_ID, SuggestedTask } from '../suggestedTasks';
 import { TaskDescription } from '../TaskDescription';
 import { TaskDialog, TaskDialogView } from '../TaskDialog';
 import { taskDisplayName } from '../taskDisplayName';
-import { splitTaskVerb } from '../taskVerb';
 import { TrainingPlanContext } from '../TrainingPlanTab';
-import { useQuickLog, UseQuickLogResponse } from '../useQuickLog';
 import { useTrainingPlanProgress } from '../useTrainingPlan';
 import { WorkGoalSettingsEditor } from '../WorkGoalSettingsEditor';
 import {
@@ -241,6 +236,7 @@ function DailyTrainingPlanInternal({
     const suggestedTasks = useMemo(() => suggestionsByDay[new Date().getDay()], [suggestionsByDay]);
     const [selectedTask, setSelectedTask] = useState<Requirement | CustomTask>();
     const [taskDialogView, setTaskDialogView] = useState<TaskDialogView>();
+    const [initialMinutes, setInitialMinutes] = useState<number>();
 
     const extraTasks = useMemo(() => {
         const tasks = [];
@@ -255,21 +251,15 @@ function DailyTrainingPlanInternal({
         return tasks;
     }, [user.customTasks, allRequirements, extraTaskIds]);
 
-    const onOpenTask = (task: Requirement | CustomTask, view: TaskDialogView) => {
+    const onOpenTask = (task: Requirement | CustomTask, view: TaskDialogView, minutes?: number) => {
         setSelectedTask(task);
         setTaskDialogView(view);
+        setInitialMinutes(minutes);
     };
 
     const onCloseTask = () => {
         setSelectedTask(undefined);
         setTaskDialogView(undefined);
-    };
-
-    const quickLog = useQuickLog();
-
-    const onEditLoggedTask = (task: Requirement | CustomTask) => {
-        quickLog.clearLastLog();
-        onOpenTask(task, TaskDialogView.Progress);
     };
 
     return (
@@ -278,16 +268,6 @@ function DailyTrainingPlanInternal({
                 width: 1,
             }}
         >
-            <RequestSnackbar request={quickLog.request} />
-
-            <QuickLogSnackbar
-                lastLog={quickLog.lastLog}
-                isUndoing={quickLog.isUndoing}
-                onUndo={() => void quickLog.undoLastLog()}
-                onEdit={onEditLoggedTask}
-                onClose={quickLog.clearLastLog}
-            />
-
             {taskDialogView && selectedTask && (
                 <TaskDialog
                     open
@@ -296,6 +276,7 @@ function DailyTrainingPlanInternal({
                     initialView={taskDialogView}
                     progress={user.progress[selectedTask.id]}
                     cohort={user.dojoCohort}
+                    initialMinutes={initialMinutes}
                 />
             )}
 
@@ -315,7 +296,6 @@ function DailyTrainingPlanInternal({
                                 onOpenTask={onOpenTask}
                                 startDate={startDate}
                                 endDate={endDate}
-                                quickLog={quickLog}
                             />
                         )
                     ),
@@ -328,7 +308,6 @@ function DailyTrainingPlanInternal({
                         onOpenTask={onOpenTask}
                         startDate={startDate}
                         endDate={endDate}
-                        quickLog={quickLog}
                     />
                 ))}
             </Grid>
@@ -345,13 +324,11 @@ function DailyTrainingPlanItem({
     startDate,
     endDate,
     onOpenTask,
-    quickLog,
 }: {
     suggestion: SuggestedTask;
     startDate: string;
     endDate: string;
-    onOpenTask: (task: Requirement | CustomTask, view: TaskDialogView) => void;
-    quickLog: UseQuickLogResponse;
+    onOpenTask: (task: Requirement | CustomTask, view: TaskDialogView, minutes?: number) => void;
 }) {
     const tCommon = useTranslations('profile.trainingPlan.common');
     const tQuickLog = useTranslations('profile.trainingPlan.quickLog');
@@ -359,7 +336,6 @@ function DailyTrainingPlanItem({
     const { isCurrentUser, pinnedTasks, togglePin, timeline, user, toggleSkip } =
         use(TrainingPlanContext);
     const isPinned = pinnedTasks.some((t) => t.id === task.id);
-    const [showLogDialog, setShowLogDialog] = useState(false);
 
     const totalCount = getTotalCount(user.dojoCohort, task, true);
     const tasks = useMemo(() => [suggestion], [suggestion]);
@@ -389,27 +365,11 @@ function DailyTrainingPlanItem({
 
     // The quick log records whatever is left of today's suggested time for this task.
     const remainingMinutes = Math.max(goalMinutes - timeWorkedMinutes, 0);
-    const showQuickLog = isCurrentUser;
     // Prefill the log with what's left of today's suggestion, or the full
     // suggestion once it's been met (someone logging more is still training).
     const suggestedLogMinutes = remainingMinutes > 0 ? remainingMinutes : goalMinutes;
 
-    const displayName = task.name.replaceAll('{{count}}', `${totalCount}`);
-    const { verb: titleVerb, rest: titleRest } = splitTaskVerb(
-        taskDisplayName({ task, cohort: user.dojoCohort }),
-    );
-
-    const onConfirmLog = (submission: QuickLogSubmission) => {
-        void quickLog
-            .quickLog({
-                task,
-                displayName,
-                cohort: user.dojoCohort,
-                progress: user.progress[task.id],
-                ...submission,
-            })
-            .then(() => setShowLogDialog(false));
-    };
+    const title = taskDisplayName({ task, cohort: user.dojoCohort });
 
     const menuActions: DailyTaskMenuAction[] = [
         {
@@ -458,13 +418,13 @@ function DailyTrainingPlanItem({
                         <Stack sx={{ height: 1 }}>
                             <Stack spacing={1} sx={{ alignItems: 'start', pr: 3 }}>
                                 <Box sx={{ pr: 4 }}>
-                                    <CategoryLabel category={task.category} verb={titleVerb} />
+                                    <CategoryLabel category={task.category} />
                                 </Box>
 
                                 <Typography
                                     sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3 }}
                                 >
-                                    {titleRest}
+                                    {title}
                                 </Typography>
                             </Stack>
 
@@ -524,15 +484,16 @@ function DailyTrainingPlanItem({
                 </CardActionArea>
 
                 <CardActions disableSpacing sx={dailyCardActionsSx}>
-                    {showQuickLog && (
+                    {isCurrentUser && (
                         <Tooltip title={tQuickLog('logTooltip')}>
                             <Button
                                 size='small'
                                 variant='contained'
                                 disableElevation
                                 startIcon={<Add />}
-                                loading={quickLog.loadingTaskId === task.id}
-                                onClick={() => setShowLogDialog(true)}
+                                onClick={() =>
+                                    onOpenTask(task, TaskDialogView.Progress, suggestedLogMinutes)
+                                }
                                 sx={dailyPrimaryButtonSx}
                                 data-testid='quick-log-button'
                             >
@@ -543,38 +504,27 @@ function DailyTrainingPlanItem({
 
                     {isCurrentUser && <TaskTimerIconButton taskId={task.id} />}
 
-                    <Box sx={{ flexGrow: 1 }} />
-
                     <Tooltip title={isCurrentUser ? tCommon('updateProgress') : ''}>
-                        <span>
+                        <Box component='span' sx={{ ml: 'auto' }}>
                             <DailyTimePill
                                 worked={timeWorkedMinutes}
                                 goal={goalMinutes}
                                 onClick={
                                     isCurrentUser
-                                        ? () => onOpenTask(task, TaskDialogView.Progress)
+                                        ? () =>
+                                              onOpenTask(
+                                                  task,
+                                                  TaskDialogView.Progress,
+                                                  suggestedLogMinutes,
+                                              )
                                         : undefined
                                 }
                                 data-testid='update-task-button'
                             />
-                        </span>
+                        </Box>
                     </Tooltip>
                 </CardActions>
             </Card>
-
-            {showLogDialog && (
-                <QuickLogDialog
-                    open
-                    onClose={() => setShowLogDialog(false)}
-                    task={task}
-                    displayName={displayName}
-                    suggestedMinutes={suggestedLogMinutes}
-                    currentCount={currentCount}
-                    cohort={user.dojoCohort}
-                    isLoading={quickLog.loadingTaskId === task.id}
-                    onSubmit={onConfirmLog}
-                />
-            )}
         </Grid>
     );
 }

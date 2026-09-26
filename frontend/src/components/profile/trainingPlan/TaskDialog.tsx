@@ -52,6 +52,8 @@ interface TaskDialogProps {
     initialView: TaskDialogView;
     progress: RequirementProgress | undefined;
     cohort: string;
+    /** Time to prefill in the progress form, in minutes. */
+    initialMinutes?: number;
 }
 
 function getRequirementName(task: Requirement | CustomTask, cohort: string) {
@@ -88,7 +90,15 @@ type ProgressDialogProps = Omit<TaskDialogProps, 'open' | 'initialView'> & {
     setView: (v: TaskDialogView) => void;
 };
 
-function ProgressDialog({ onClose, task, progress, cohort, view, setView }: ProgressDialogProps) {
+function ProgressDialog({
+    onClose,
+    task,
+    progress,
+    cohort,
+    view,
+    setView,
+    initialMinutes,
+}: ProgressDialogProps) {
     const t = useTranslations('profile.trainingPlan.taskDialog');
     const { user } = useAuth();
 
@@ -129,6 +139,7 @@ function ProgressDialog({ onClose, task, progress, cohort, view, setView }: Prog
                     cohort={selectedCohort}
                     onClose={onClose}
                     setView={setView}
+                    initialMinutes={initialMinutes}
                 />
             )}
         </>
