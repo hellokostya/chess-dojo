@@ -123,7 +123,7 @@ function ProgressDialog({
 
     return (
         <>
-            <DialogTitle>{dialogTitle}</DialogTitle>
+            <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>{dialogTitle}</DialogTitle>
 
             {view === TaskDialogView.History && (
                 <ProgressHistory requirement={task} onClose={onClose} setView={setView} />

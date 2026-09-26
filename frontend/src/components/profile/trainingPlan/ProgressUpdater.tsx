@@ -208,7 +208,14 @@ export const ProgressUpdater = ({
 
     return (
         <>
-            <DialogContent>
+            <DialogContent
+                sx={{
+                    // Two text styles only: labels are 1rem semibold (SectionLabel),
+                    // everything else is this.
+                    '& .MuiInputBase-root, & .MuiInputLabel-root, & .MuiButton-root, & .MuiTypography-root:not(.section-label)':
+                        { fontSize: '1rem', fontWeight: 400 },
+                }}
+            >
                 <Stack spacing={3} sx={{ pt: 1 }}>
                     {isSlider && (
                         <FormRow label={requirement.progressBarSuffix || tSlider('progressCount')}>
@@ -328,7 +335,15 @@ export const ProgressUpdater = ({
                     />
                 </Stack>
             </DialogContent>
-            <DialogActions sx={{ flexWrap: 'wrap', px: 2, pb: 2, gap: 0.5 }}>
+            <DialogActions
+                sx={{
+                    flexWrap: 'wrap',
+                    px: 2,
+                    pb: 2,
+                    gap: 0.5,
+                    '& .MuiButton-root': { fontSize: '1rem', fontWeight: 400 },
+                }}
+            >
                 {setView && (
                     <>
                         <Button
@@ -369,7 +384,7 @@ export const ProgressUpdater = ({
                         px: 2.5,
                         mr: 1,
                         textTransform: 'none',
-                        fontWeight: 600,
+                        fontWeight: '600 !important',
                     }}
                 >
                     {tCommon('update')}
@@ -410,7 +425,6 @@ function FormRow({
                 <SectionLabel>{label}</SectionLabel>
                 {caption && (
                     <Typography
-                        variant='caption'
                         sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}
                     >
                         {caption}

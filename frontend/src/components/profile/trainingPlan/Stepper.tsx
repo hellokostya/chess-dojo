@@ -81,7 +81,6 @@ export function Stepper({
                         style: { textAlign: 'center', padding: 0 },
                     }}
                     sx={{
-                        fontWeight: 600,
                         fontVariantNumeric: 'tabular-nums',
                         color: warning ? 'warning.main' : undefined,
                         '& input': { width: `${Math.max(value.length, 1) + 0.5}ch` },
@@ -90,8 +89,7 @@ export function Stepper({
                 />
                 {unit && (
                     <Typography
-                        variant='body2'
-                        sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
+                        sx={{ fontSize: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}
                     >
                         {unit}
                     </Typography>
