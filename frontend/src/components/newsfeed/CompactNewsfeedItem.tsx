@@ -7,7 +7,16 @@ import Avatar from '@/profile/Avatar';
 import CohortIcon from '@/scoreboard/CohortIcon';
 import { CategoryColors } from '@/style/ThemeProvider';
 import { ChatBubbleOutlineOutlined, Edit } from '@mui/icons-material';
-import { Box, Button, IconButton, LinearProgress, Stack, Tooltip, Typography } from '@mui/material';
+import {
+    alpha,
+    Box,
+    Button,
+    IconButton,
+    LinearProgress,
+    Stack,
+    Tooltip,
+    Typography,
+} from '@mui/material';
 import { useTranslations } from 'next-intl';
 import GameNewsfeedItem from '../../app/[locale]/(scoreboard)/newsfeed/(detail)/[owner]/[id]/GameNewsfeedItem';
 import GraduationNewsfeedItem from '../../app/[locale]/(scoreboard)/newsfeed/(detail)/[owner]/[id]/GraduationNewsfeedItem';
@@ -163,6 +172,8 @@ function CompactBody({ entry }: { entry: TimelineEntry }) {
                 })}
             </Typography>
 
+            <EntryDeltas entry={entry} isTime={isTime} startCount={min} />
+
             {entry.totalMinutesSpent > 0 && entry.minutesSpent > 0 && (
                 <Typography variant='caption' sx={{ color: 'text.secondary' }}>
                     {t('totalTime')}{' '}
@@ -219,6 +230,73 @@ function CompactBody({ entry }: { entry: TimelineEntry }) {
                     {entry.notes}
                 </Typography>
             )}
+        </Stack>
+    );
+}
+
+/** Formats a signed change, e.g. "+5" or "−3". */
+function signed(value: number, text: string) {
+    return `${value < 0 ? '−' : '+'}${text}`;
+}
+
+/**
+ * What this entry added: units of progress ("+5 exercises") and time ("+30m"), as
+ * small tags. Time-counted tasks show only the time, which is their count.
+ */
+function EntryDeltas({
+    entry,
+    isTime,
+    startCount,
+}: {
+    entry: TimelineEntry;
+    isTime: boolean;
+    /** Counts below the task's start (e.g. puzzle #307) count as zero, as on the card. */
+    startCount: number;
+}) {
+    const tCommon = useTranslations('common');
+    const color = CategoryColors[entry.requirementCategory] ?? undefined;
+
+    const countDelta = isTime
+        ? 0
+        : Math.max(entry.newCount - startCount, 0) - Math.max(entry.previousCount - startCount, 0);
+    const suffix = entry.progressBarSuffix?.toLowerCase() ?? '';
+    const deltas: { key: string; text: string }[] = [];
+    if (countDelta !== 0) {
+        deltas.push({
+            key: 'count',
+            text: signed(countDelta, `${Math.abs(countDelta)}${suffix ? ` ${suffix}` : ''}`),
+        });
+    }
+    if (entry.minutesSpent !== 0) {
+        deltas.push({
+            key: 'time',
+            text: signed(entry.minutesSpent, formatTime(Math.abs(entry.minutesSpent), tCommon)),
+        });
+    }
+    if (deltas.length === 0) {
+        return null;
+    }
+
+    return (
+        <Stack direction='row' sx={{ gap: 0.75, flexWrap: 'wrap' }} data-testid='entry-deltas'>
+            {deltas.map((d) => (
+                <Box
+                    key={d.key}
+                    component='span'
+                    sx={(theme) => ({
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 999,
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        fontVariantNumeric: 'tabular-nums',
+                        color: color ?? theme.palette.text.primary,
+                        backgroundColor: alpha(color ?? theme.palette.text.primary, 0.14),
+                    })}
+                >
+                    {d.text}
+                </Box>
+            ))}
         </Stack>
     );
 }
