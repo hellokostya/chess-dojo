@@ -1,4 +1,8 @@
 import { CustomTask, getTotalCount, Requirement } from '@/database/requirement';
+import { ANNOTATE_GAMES_TASK_ID } from './suggestedTasks';
+
+/** Tasks that keep their full name on the daily and weekly plans. */
+const FULL_NAME_TASK_IDS = [ANNOTATE_GAMES_TASK_ID];
 
 /**
  * Returns the display name for a task, without the suggested time. The time is
@@ -15,7 +19,8 @@ export function taskDisplayName({
     cohort: string;
 }): string {
     const totalCount = getTotalCount(cohort, task, true);
-    return (task.dailyName || task.name)
+    const name = FULL_NAME_TASK_IDS.includes(task.id) ? task.name : task.dailyName || task.name;
+    return name
         .replace(/\s*[-–—:]?\s*\{\{time\}\}/g, '')
         .replaceAll('{{count}}', `${totalCount}`)
         .trim();
