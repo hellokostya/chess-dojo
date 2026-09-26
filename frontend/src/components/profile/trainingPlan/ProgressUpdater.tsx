@@ -6,15 +6,14 @@ import { useTimelineContext } from '@/components/profile/activity/useTimeline';
 import { TimerContext } from '@/components/timer/TimerContext';
 import {
     CustomTask,
-    Requirement,
-    RequirementProgress,
-    ScoreboardDisplay,
     formatTime,
     getCurrentCount,
     isRequirement,
+    Requirement,
+    RequirementProgress,
+    ScoreboardDisplay,
 } from '@/database/requirement';
 import { TimeFormat } from '@/database/user';
-import { Add, Remove } from '@mui/icons-material';
 import {
     Alert,
     Box,
@@ -22,8 +21,8 @@ import {
     Checkbox,
     DialogActions,
     DialogContent,
+    Divider,
     FormControlLabel,
-    InputBase,
     Stack,
     TextField,
     Typography,
@@ -32,8 +31,8 @@ import { DateTimePicker } from '@mui/x-date-pickers-pro';
 import { DateTime } from 'luxon';
 import { useTranslations } from 'next-intl';
 import { use, useState } from 'react';
-import { InputSlider } from './InputSlider';
 import { SectionLabel } from './SectionLabel';
+import { Stepper, STEPPER_WIDTH } from './Stepper';
 import { TaskDialogView } from './TaskDialog';
 
 const NUMBER_REGEX = /^[0-9]*$/;
@@ -65,6 +64,7 @@ export const ProgressUpdater = ({
     const t = useTranslations('profile.trainingPlan.progressUpdater');
     const tCommon = useTranslations('profile.trainingPlan.common');
     const tTime = useTranslations('common');
+    const tSlider = useTranslations('profile.trainingPlan.inputSlider');
     const { user } = useAuth();
     const api = useApi();
     const { entries, onNewEntry } = useTimelineContext();
@@ -77,6 +77,7 @@ export const ProgressUpdater = ({
     const startCount = requirement.startCount || 0;
     const [value, setValue] = useState<number>(Math.max(currentCount - startCount, 0));
     const [subtract, setSubtract] = useState(false);
+    const maxValue = Math.max(totalCount - startCount, 0);
     const [markComplete, setMarkComplete] = useState(true);
     const [date, setDate] = useState<DateTime | null>(
         // Rounded down to the hour, a tidier default than the current minute.
@@ -210,14 +211,25 @@ export const ProgressUpdater = ({
             <DialogContent>
                 <Stack spacing={3} sx={{ pt: 1 }}>
                     {isSlider && (
-                        <InputSlider
-                            value={value}
-                            setValue={setValue}
-                            max={Math.max(totalCount - startCount, 0)}
-                            min={0}
-                            suffix={requirement.progressBarSuffix}
-                            hideSlider
-                        />
+                        <FormRow label={requirement.progressBarSuffix || tSlider('progressCount')}>
+                            <Stepper
+                                value={`${value}`}
+                                onChange={(text) =>
+                                    setValue(
+                                        Math.min(parseInt(text.replace(/\D/g, '')) || 0, maxValue),
+                                    )
+                                }
+                                onDecrement={() => setValue((v) => Math.max(v - 1, 0))}
+                                onIncrement={() => setValue((v) => Math.min(v + 1, maxValue))}
+                                decrementDisabled={value <= 0}
+                                incrementDisabled={value >= maxValue}
+                                unit={`/ ${maxValue}`}
+                                label={requirement.progressBarSuffix || tSlider('count')}
+                                decrementLabel={tSlider('decrement')}
+                                incrementLabel={tSlider('increment')}
+                                data-testid='task-updater-count'
+                            />
+                        </FormRow>
                     )}
 
                     {isCheckbox && (
@@ -232,107 +244,68 @@ export const ProgressUpdater = ({
                         />
                     )}
 
-                    <Stack spacing={1}>
-                        <Stack
-                            direction='row'
-                            sx={{
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                flexWrap: 'wrap',
-                                columnGap: 2,
-                                rowGap: 1,
-                            }}
-                        >
-                            <SectionLabel>{t('timeSpent')}</SectionLabel>
-                            <Stack direction='row'>
-                                <Button
-                                    variant='outlined'
-                                    aria-label={t('removeTime')}
-                                    disabled={addedTime <= -previousTime}
-                                    onClick={() => onQuickAdd(-TIME_STEP_MINUTES)}
-                                    sx={{ px: 1.5, minWidth: 40, borderRadius: '4px 0 0 4px' }}
-                                    data-testid='task-updater-remove-time'
-                                >
-                                    <Remove fontSize='small' />
-                                </Button>
-                                <InputBase
-                                    value={subtract ? `-${enteredTime}` : `${enteredTime}`}
-                                    onChange={(event) => {
-                                        const raw = event.target.value.replace(/[^0-9-]/g, '');
-                                        const n = parseInt(raw) || 0;
-                                        onSetTime(Math.max(n, -previousTime));
-                                    }}
-                                    endAdornment={
-                                        <Typography
-                                            variant='body2'
-                                            sx={{ color: 'text.secondary', pl: 0.5, pr: 1 }}
-                                        >
-                                            {t('minutesShort')}
-                                        </Typography>
-                                    }
-                                    inputProps={{
-                                        inputMode: 'numeric',
-                                        'aria-label': tCommon('minutes'),
-                                        style: { textAlign: 'right' },
-                                    }}
-                                    sx={{
-                                        width: 88,
-                                        border: 1,
-                                        borderColor: 'divider',
-                                        borderLeftWidth: 0,
-                                        borderRightWidth: 0,
-                                        color: subtract ? 'warning.main' : undefined,
-                                        fontVariantNumeric: 'tabular-nums',
-                                    }}
-                                    data-testid='task-updater-minutes'
-                                />
-                                <Button
-                                    variant='outlined'
-                                    aria-label={t('addTime')}
-                                    onClick={() => onQuickAdd(TIME_STEP_MINUTES)}
-                                    sx={{ px: 1.5, minWidth: 40, borderRadius: '0 4px 4px 0' }}
-                                    data-testid='task-updater-add-time'
-                                >
-                                    <Add fontSize='small' />
-                                </Button>
-                            </Stack>
-                        </Stack>
-
-                        <Stack
-                            direction='row'
-                            sx={{ alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}
-                        >
-                            {QUICK_ADD_MINUTES.map((quickMinutes) => (
-                                <Button
-                                    key={quickMinutes}
-                                    size='small'
-                                    onClick={() => onQuickAdd(quickMinutes)}
-                                    sx={{ minWidth: 0, px: 1, textTransform: 'none' }}
-                                    data-testid={`task-updater-quick-add-${quickMinutes}`}
-                                >
-                                    {t('quickAdd', { time: formatTime(quickMinutes, tTime) })}
-                                </Button>
-                            ))}
-                            <Box sx={{ flexGrow: 1 }} />
-                            <Typography
-                                variant='caption'
-                                sx={{
-                                    color: subtract ? 'warning.main' : 'text.secondary',
-                                    fontVariantNumeric: 'tabular-nums',
-                                }}
+                    <FormRow
+                        label={t('timeSpent')}
+                        caption={
+                            <Box
+                                component='span'
+                                sx={{ color: subtract ? 'warning.main' : undefined }}
                                 data-testid='task-updater-total-time'
                             >
                                 {t('totalTimeChange', {
                                     before: formatTime(previousTime, tTime),
                                     after: formatTime(totalTime, tTime),
                                 })}
-                            </Typography>
+                            </Box>
+                        }
+                    >
+                        <Stack spacing={0.75} sx={{ width: STEPPER_WIDTH }}>
+                            <Stepper
+                                value={subtract ? `-${enteredTime}` : `${enteredTime}`}
+                                onChange={(text) => {
+                                    const n = parseInt(text.replace(/[^0-9-]/g, '')) || 0;
+                                    onSetTime(Math.max(n, -previousTime));
+                                }}
+                                onDecrement={() => onQuickAdd(-TIME_STEP_MINUTES)}
+                                onIncrement={() => onQuickAdd(TIME_STEP_MINUTES)}
+                                decrementDisabled={addedTime <= -previousTime}
+                                unit={t('minutesShort')}
+                                label={tCommon('minutes')}
+                                decrementLabel={t('removeTime')}
+                                incrementLabel={t('addTime')}
+                                warning={subtract}
+                                data-testid='task-updater-minutes'
+                            />
+                            <Stack direction='row' sx={{ gap: 0.75 }}>
+                                {QUICK_ADD_MINUTES.map((quickMinutes) => (
+                                    <Button
+                                        key={quickMinutes}
+                                        size='small'
+                                        variant='outlined'
+                                        color='inherit'
+                                        onClick={() => onQuickAdd(quickMinutes)}
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 0,
+                                            borderRadius: 2,
+                                            borderColor: 'divider',
+                                            color: 'text.secondary',
+                                            textTransform: 'none',
+                                        }}
+                                        data-testid={`task-updater-quick-add-${quickMinutes}`}
+                                    >
+                                        {t('quickAdd', { time: formatTime(quickMinutes, tTime) })}
+                                    </Button>
+                                ))}
+                            </Stack>
                         </Stack>
+                    </FormRow>
 
-                        {enteredTime > TIME_WARNING_THRESHOLD_MINS && (
-                            <Alert severity='warning'>{t('largeTimeWarning')}</Alert>
-                        )}
-                    </Stack>
+                    {enteredTime > TIME_WARNING_THRESHOLD_MINS && (
+                        <Alert severity='warning'>{t('largeTimeWarning')}</Alert>
+                    )}
+
+                    <Divider />
 
                     <DateTimePicker
                         label={tCommon('date')}
@@ -347,6 +320,7 @@ export const ProgressUpdater = ({
                         label={tCommon('comments')}
                         placeholder={tCommon('commentsPlaceholder')}
                         multiline
+                        size='small'
                         minRows={2}
                         maxRows={4}
                         value={notes}
@@ -354,14 +328,14 @@ export const ProgressUpdater = ({
                     />
                 </Stack>
             </DialogContent>
-            <DialogActions sx={{ flexWrap: 'wrap', px: 3, pb: 2, gap: 1 }}>
+            <DialogActions sx={{ flexWrap: 'wrap', px: 2, pb: 2, gap: 0.5 }}>
                 {setView && (
                     <>
                         <Button
                             color='inherit'
                             onClick={() => setView(TaskDialogView.Details)}
                             disabled={request.isLoading()}
-                            sx={{ color: 'text.secondary', textTransform: 'none' }}
+                            sx={{ color: 'text.secondary', textTransform: 'none', px: 1 }}
                         >
                             {tCommon('taskDetails')}
                         </Button>
@@ -370,7 +344,7 @@ export const ProgressUpdater = ({
                             data-testid='task-updater-show-history-button'
                             onClick={() => setView(TaskDialogView.History)}
                             disabled={request.isLoading()}
-                            sx={{ color: 'text.secondary', textTransform: 'none' }}
+                            sx={{ color: 'text.secondary', textTransform: 'none', px: 1 }}
                         >
                             {tCommon('showHistory')}
                         </Button>
@@ -390,7 +364,13 @@ export const ProgressUpdater = ({
                     data-testid='task-updater-save-button'
                     loading={request.isLoading()}
                     onClick={onSubmit}
-                    sx={{ borderRadius: 999, px: 2.5, textTransform: 'none', fontWeight: 600 }}
+                    sx={{
+                        borderRadius: 999,
+                        px: 2.5,
+                        mr: 1,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                    }}
                 >
                     {tCommon('update')}
                 </Button>
@@ -400,3 +380,44 @@ export const ProgressUpdater = ({
         </>
     );
 };
+
+/**
+ * One row of the form: a label (and optional caption) on the left, its control on
+ * the right. Every row's control shares the right edge, and wraps under the
+ * label on narrow screens.
+ */
+function FormRow({
+    label,
+    caption,
+    children,
+}: {
+    label: string;
+    caption?: React.ReactNode;
+    children: React.ReactNode;
+}) {
+    return (
+        <Stack
+            direction='row'
+            sx={{
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                columnGap: 3,
+                rowGap: 1,
+            }}
+        >
+            <Stack spacing={0.25} sx={{ minHeight: 40, justifyContent: 'center' }}>
+                <SectionLabel>{label}</SectionLabel>
+                {caption && (
+                    <Typography
+                        variant='caption'
+                        sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}
+                    >
+                        {caption}
+                    </Typography>
+                )}
+            </Stack>
+            {children}
+        </Stack>
+    );
+}
