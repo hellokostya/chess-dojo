@@ -133,7 +133,8 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
 
     const totalScore = getTotalScore(cohort, requirements);
     const cohortScore = getCohortScore(user, cohort, requirements, timeline);
-    const percentComplete = Math.round((100 * cohortScore) / totalScore);
+    // Zero until the cohort's tasks have loaded, rather than NaN.
+    const percentComplete = totalScore > 0 ? Math.round((100 * cohortScore) / totalScore) : 0;
 
     const classicalGamesTask = requirements.find((r) => r.id === CLASSICAL_GAMES_TASK_ID);
     const classicalGamesPlayed = getCurrentCount({
@@ -232,7 +233,7 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
                     {categories.map((c) => {
                         const value = getCategoryScore(user, cohort, c, requirements, timeline);
                         const total = getTotalCategoryScore(cohort, c, requirements);
-                        const percent = Math.round((100 * value) / total);
+                        const percent = total > 0 ? Math.round((100 * value) / total) : 0;
                         return (
                             <ProgressRow
                                 key={c}

@@ -165,14 +165,18 @@ function CompactBody({ entry }: { entry: TimelineEntry }) {
 
     return (
         <Stack spacing={0.75}>
-            <Typography variant='body2'>
-                {t.rich(isComplete ? 'completedRequirement' : 'updatedRequirement', {
-                    name: entry.requirementName,
-                    strong: (chunks) => <strong>{chunks}</strong>,
-                })}
-            </Typography>
-
-            <EntryDeltas entry={entry} isTime={isTime} startCount={min} />
+            <Stack
+                direction='row'
+                sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}
+            >
+                <Typography variant='body2' sx={{ minWidth: 0 }}>
+                    {t.rich(isComplete ? 'completedRequirement' : 'updatedRequirement', {
+                        name: entry.requirementName,
+                        strong: (chunks) => <strong>{chunks}</strong>,
+                    })}
+                </Typography>
+                <EntryDeltas entry={entry} isTime={isTime} startCount={min} />
+            </Stack>
 
             {entry.totalMinutesSpent > 0 && entry.minutesSpent > 0 && (
                 <Typography variant='caption' sx={{ color: 'text.secondary' }}>
@@ -240,8 +244,8 @@ function signed(value: number, text: string) {
 }
 
 /**
- * What this entry added: units of progress ("+5 exercises") and time ("+30m"), as
- * small tags. Time-counted tasks show only the time, which is their count.
+ * The units of progress this entry added ("+5 exercises"), as a small tag. Time is
+ * left to the "Total Time" line, and time-counted tasks show no tag.
  */
 function EntryDeltas({
     entry,
@@ -253,7 +257,6 @@ function EntryDeltas({
     /** Counts below the task's start (e.g. puzzle #307) count as zero, as on the card. */
     startCount: number;
 }) {
-    const tCommon = useTranslations('common');
     const color = CategoryColors[entry.requirementCategory] ?? undefined;
 
     const countDelta = isTime
@@ -267,18 +270,16 @@ function EntryDeltas({
             text: signed(countDelta, `${Math.abs(countDelta)}${suffix ? ` ${suffix}` : ''}`),
         });
     }
-    if (entry.minutesSpent !== 0) {
-        deltas.push({
-            key: 'time',
-            text: signed(entry.minutesSpent, formatTime(Math.abs(entry.minutesSpent), tCommon)),
-        });
-    }
     if (deltas.length === 0) {
         return null;
     }
 
     return (
-        <Stack direction='row' sx={{ gap: 0.75, flexWrap: 'wrap' }} data-testid='entry-deltas'>
+        <Stack
+            direction='row'
+            sx={{ gap: 0.75, flexShrink: 0, whiteSpace: 'nowrap' }}
+            data-testid='entry-deltas'
+        >
             {deltas.map((d) => (
                 <Box
                     key={d.key}

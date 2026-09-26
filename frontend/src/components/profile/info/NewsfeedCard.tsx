@@ -8,7 +8,7 @@ import { CompactNewsfeedItem } from '@/components/newsfeed/CompactNewsfeedItem';
 import { isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
 import { TimelineEntry } from '@/database/timeline';
 import { Feed, OpenInNew } from '@mui/icons-material';
-import { Button, Card, CardContent, Divider, Skeleton, Stack, Typography } from '@mui/material';
+import { Button, Card, CardContent, Skeleton, Stack, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -91,14 +91,17 @@ export function NewsfeedCard() {
                         </Stack>
                     )}
 
-                    <Stack divider={<Divider flexItem />} spacing={2}>
+                    <Stack spacing={1.5}>
                         {entries.map((entry) => (
-                            <CompactNewsfeedItem
-                                key={entry.id}
-                                entry={entry}
-                                onEdit={onEdit}
-                                maxComments={MAX_COMMENTS}
-                            />
+                            <Card key={entry.id} variant='outlined'>
+                                <CardContent sx={{ p: 2, '&:last-child': { pb: 1 } }}>
+                                    <CompactNewsfeedItem
+                                        entry={entry}
+                                        onEdit={onEdit}
+                                        maxComments={MAX_COMMENTS}
+                                    />
+                                </CardContent>
+                            </Card>
                         ))}
                     </Stack>
 
