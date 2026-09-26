@@ -23,7 +23,13 @@ export function NewsfeedCard() {
     const [entries, setEntries] = useState<TimelineEntry[]>([]);
 
     const handleResponse = useCallback((resp: ListNewsfeedResponse) => {
-        setEntries(resp.entries.filter((entry) => !isRestDayEntry(entry)).slice(0, MAX_ITEMS));
+        // Most recently logged first, so the latest activity is at the top.
+        setEntries(
+            resp.entries
+                .filter((entry) => !isRestDayEntry(entry))
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                .slice(0, MAX_ITEMS),
+        );
     }, []);
 
     useEffect(() => {

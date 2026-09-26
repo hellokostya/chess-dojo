@@ -71,9 +71,17 @@ export function CompactNewsfeedItem({
 
     return (
         <Stack spacing={1.25} data-testid='compact-newsfeed-item'>
-            <CompactEntryHeader entry={entry} />
-
-            {!isGraduation && category && <CategoryLabel category={category} />}
+            <Stack
+                direction='row'
+                sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}
+            >
+                <CompactEntryHeader entry={entry} />
+                {!isGraduation && category && (
+                    <Box sx={{ flexShrink: 0 }}>
+                        <CategoryLabel category={category} />
+                    </Box>
+                )}
+            </Stack>
 
             {isGraduation ? (
                 <GraduationNewsfeedItem entry={entry} />
