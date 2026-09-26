@@ -1472,6 +1472,7 @@
         "completedRequirement": "Completed <strong>{name}</strong>",
         "updated": "Updated",
         "updatedRequirement": "Updated <strong>{name}</strong>",
+        "pointsGained": "+{points} points",
         "dojoPoints": "Dojo Points:",
         "totalTime": "Total Time:",
         "customTask": "Custom Task",

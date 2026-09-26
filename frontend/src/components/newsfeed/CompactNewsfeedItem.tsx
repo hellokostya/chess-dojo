@@ -13,6 +13,7 @@ import GameNewsfeedItem from '../../app/[locale]/(scoreboard)/newsfeed/(detail)/
 import GraduationNewsfeedItem from '../../app/[locale]/(scoreboard)/newsfeed/(detail)/[owner]/[id]/GraduationNewsfeedItem';
 import CommentList from '../comments/CommentList';
 import { Link } from '../navigation/Link';
+import { CONTENT_MAX_WIDTH } from './layout';
 import { useEntryDateTime } from './NewsfeedItemHeader';
 import ReactionList from './ReactionList';
 
@@ -121,7 +122,9 @@ export function CompactNewsfeedItem({
                         onEdit={onEdit}
                     />
                     {commentBox ? (
-                        <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: 320 }}>{commentBox}</Box>
+                        <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: CONTENT_MAX_WIDTH - 40 }}>
+                            {commentBox}
+                        </Box>
                     ) : (
                         <Button
                             href={link}
@@ -165,12 +168,27 @@ export function CompactNewsfeedItem({
 }
 
 /** The task worked on: its category icon in the category's colour, and its name. */
-function TaskLine({ category, name }: { category: RequirementCategory; name: string }) {
+export function TaskLine({ category, name }: { category: RequirementCategory; name: string }) {
+    const tCategory = useTranslations('enums.requirementCategory');
     const color = CategoryColors[category];
     return (
-        <Stack direction='row' sx={{ alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-            <TrainingPlanIcon category={category} sx={{ fontSize: '1.1rem', color }} />
-            <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', lineHeight: 1.3 }}>
+        <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+            <Stack direction='row' sx={{ alignItems: 'center', gap: 0.5 }}>
+                <TrainingPlanIcon category={category} sx={{ fontSize: '0.95rem', color }} />
+                <Typography
+                    variant='caption'
+                    sx={{
+                        color,
+                        fontWeight: 600,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        lineHeight: 1,
+                    }}
+                >
+                    {tCategory.has(category) ? tCategory(category) : category}
+                </Typography>
+            </Stack>
+            <Typography sx={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.35 }}>
                 {name}
             </Typography>
         </Stack>
@@ -206,7 +224,7 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
 
     return (
         // Kept to the game card's width, so bars don't stretch across wide columns.
-        <Stack spacing={0.75} sx={{ maxWidth: 360 }}>
+        <Stack spacing={0.75} sx={{ maxWidth: CONTENT_MAX_WIDTH }}>
             {entry.requirementCategory && (
                 <TaskLine category={entry.requirementCategory} name={entry.requirementName} />
             )}
@@ -235,6 +253,9 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
                         {isTime
                             ? `${formatTime(current, tCommon)} / ${formatTime(total, tCommon)}`
                             : `${current} / ${total}`}
+                        <Box component='span' sx={{ color: 'text.secondary', fontWeight: 400 }}>
+                            {` · ${percentLabel(percent)}`}
+                        </Box>
                     </Typography>
                 </Stack>
             )}
@@ -281,6 +302,11 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
                         )}`}
                     </Typography>
                 )}
+                {entry.dojoPoints > 0 && (
+                    <Typography variant='caption' sx={{ color: 'text.secondary' }}>
+                        {t('pointsGained', { points: Math.round(100 * entry.dojoPoints) / 100 })}
+                    </Typography>
+                )}
             </Stack>
 
             {entry.notes && (
@@ -310,4 +336,12 @@ export function singularUnit(unit: string): string {
         return unit.slice(0, -1);
     }
     return unit;
+}
+
+/** A share of a task done, with small shares kept visible: "0.3%" rather than "0%". */
+function percentLabel(percent: number): string {
+    if (percent > 0 && percent < 1) {
+        return `${Math.round(percent * 10) / 10}%`;
+    }
+    return `${Math.round(percent)}%`;
 }

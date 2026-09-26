@@ -1,4 +1,5 @@
 import { Link } from '@/components/navigation/Link';
+import { CONTENT_MAX_WIDTH } from '@/components/newsfeed/layout';
 import { TrainingPlanIcon } from '@/components/profile/trainingPlan/TrainingPlanIcon';
 import { RequirementCategory } from '@/database/requirement';
 import { TimelineEntry } from '@/database/timeline';
@@ -53,7 +54,7 @@ const GameNewsfeedItem: React.FC<GameNewsfeedItemProps> = ({ entry }) => {
                 href={gameUrl}
                 sx={{
                     // Game-sized rather than column-wide on larger screens.
-                    maxWidth: 360,
+                    maxWidth: CONTENT_MAX_WIDTH,
                     border: 1,
                     borderColor: 'divider',
                     borderRadius: 2,
