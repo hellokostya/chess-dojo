@@ -1471,7 +1471,6 @@
         "completedRequirement": "Completato <strong>{name}</strong>",
         "updated": "Aggiornato",
         "updatedRequirement": "Aggiornato <strong>{name}</strong>",
-        "timeLogged": "{time} · {total} in totale",
         "dojoPoints": "Punti Dojo:",
         "totalTime": "Tempo totale:",
         "customTask": "Compito personalizzato",

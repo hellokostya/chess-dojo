@@ -118,7 +118,7 @@ export const BadgeCard = ({ user }: { user: User }) => {
 
     return (
         <>
-            <Card>
+            <Card variant='outlined'>
                 <Stack
                     direction='row'
                     sx={{

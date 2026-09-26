@@ -175,7 +175,7 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
             : 0;
 
     return (
-        <Card id='cohort-score-card' sx={{ height: 1 }}>
+        <Card id='cohort-score-card' variant='outlined' sx={{ height: 1 }}>
             <CardContent>
                 <Box sx={{ mb: 2 }}>
                     <CardTitle icon={<BarChart sx={{ color: 'primary.main' }} aria-hidden />}>

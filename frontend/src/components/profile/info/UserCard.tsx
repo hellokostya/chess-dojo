@@ -90,7 +90,7 @@ export function UserCard({
     };
 
     return (
-        <Card sx={{ position: 'relative', height: 1 }}>
+        <Card variant='outlined' sx={{ position: 'relative', height: 1 }}>
             <RequestSnackbar request={followRequest} />
 
             <Stack

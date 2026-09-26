@@ -55,7 +55,7 @@ export function NewsfeedCard() {
     };
 
     return (
-        <Card data-testid='newsfeed-card'>
+        <Card variant='outlined' data-testid='newsfeed-card'>
             <CardContent>
                 <Stack spacing={2}>
                     <Stack

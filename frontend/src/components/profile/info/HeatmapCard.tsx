@@ -48,10 +48,12 @@ export const HeatmapCard = ({ workGoalHistory }: { workGoalHistory: WorkGoalHist
 
     return (
         <>
-            <Card sx={{ height: 1 }}>
+            <Card variant='outlined' sx={{ height: 1 }}>
                 <CardContent sx={{ position: 'relative' }}>
                     <Heatmap
                         entries={entries}
+                        // The day labels match the card's flat background.
+                        slotProps={{ weekdayLabelPaper: { elevation: 0 } }}
                         onPopOut={() => setIsModalOpen(true)}
                         description={t('pastYear')}
                         title={tHeatmap('title')}

@@ -92,8 +92,10 @@ export function CompactNewsfeedItem({
                 size={AVATAR_SIZE}
             />
 
-            <Stack spacing={1} sx={{ flexGrow: 1, minWidth: 0 }}>
-                <EntryByline entry={entry} />
+            <Stack sx={{ gap: 1, flexGrow: 1, minWidth: 0 }}>
+                <Box sx={{ mb: 0.75 }}>
+                    <EntryByline entry={entry} />
+                </Box>
 
                 {isGraduation ? (
                     <GraduationNewsfeedItem entry={entry} />
@@ -103,7 +105,12 @@ export function CompactNewsfeedItem({
                     <ProgressBody entry={entry} />
                 )}
 
-                <Stack direction='row' sx={{ alignItems: 'center', gap: 0.5, ml: -0.75 }}>
+                <Stack
+                    direction='row'
+                    // Pulled left by the buttons' padding, so their icons line up with
+                    // the text above.
+                    sx={{ alignItems: 'center', gap: 0.5, ml: '-8px' }}
+                >
                     <ReactionList
                         owner={entry.owner}
                         id={entry.id}
@@ -258,13 +265,10 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
                 )}
                 {entry.minutesSpent !== 0 && (
                     <Typography variant='caption' sx={{ color: 'text.secondary' }}>
-                        {t('timeLogged', {
-                            time: `${entry.minutesSpent > 0 ? '+' : '−'}${formatTime(
-                                Math.abs(entry.minutesSpent),
-                                tCommon,
-                            )}`,
-                            total: formatTime(entry.totalMinutesSpent, tCommon),
-                        })}
+                        {`${entry.minutesSpent > 0 ? '+' : '−'}${formatTime(
+                            Math.abs(entry.minutesSpent),
+                            tCommon,
+                        )}`}
                     </Typography>
                 )}
             </Stack>
