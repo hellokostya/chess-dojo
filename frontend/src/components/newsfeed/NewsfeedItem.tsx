@@ -28,7 +28,7 @@ const NewsfeedItem: React.FC<NewsfeedItemProps> = ({
 
     return (
         <Card variant='outlined'>
-            <CardContent>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 1.5 } }}>
                 <CompactNewsfeedItem
                     entry={entry}
                     onEdit={onEdit}

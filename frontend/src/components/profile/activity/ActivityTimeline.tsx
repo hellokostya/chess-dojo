@@ -233,7 +233,7 @@ const ActivityTimelineList = ({
             <Stack spacing={1.5}>
                 {entries.slice(0, numShown).map((entry, i) => (
                     <Card key={entry.id} variant='outlined'>
-                        <CardContent>
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 1.5 } }}>
                             <CompactNewsfeedItem
                                 entry={entry}
                                 onEdit={(e) => onEdit(i, e)}

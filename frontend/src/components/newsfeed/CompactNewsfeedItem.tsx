@@ -121,7 +121,7 @@ export function CompactNewsfeedItem({
                         onEdit={onEdit}
                     />
                     {commentBox ? (
-                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>{commentBox}</Box>
+                        <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: 320 }}>{commentBox}</Box>
                     ) : (
                         <Button
                             href={link}
@@ -205,7 +205,8 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
     const unit = entry.progressBarSuffix?.toLowerCase() ?? '';
 
     return (
-        <Stack spacing={0.75}>
+        // Kept to the game card's width, so bars don't stretch across wide columns.
+        <Stack spacing={0.75} sx={{ maxWidth: 360 }}>
             {entry.requirementCategory && (
                 <TaskLine category={entry.requirementCategory} name={entry.requirementName} />
             )}
