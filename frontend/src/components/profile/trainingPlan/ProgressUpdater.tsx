@@ -20,12 +20,10 @@ import {
     Box,
     Button,
     Checkbox,
-    Chip,
     DialogActions,
     DialogContent,
     FormControlLabel,
-    IconButton,
-    InputAdornment,
+    InputBase,
     Stack,
     TextField,
     Typography,
@@ -80,7 +78,10 @@ export const ProgressUpdater = ({
     const [value, setValue] = useState<number>(Math.max(currentCount - startCount, 0));
     const [subtract, setSubtract] = useState(false);
     const [markComplete, setMarkComplete] = useState(true);
-    const [date, setDate] = useState<DateTime | null>(DateTime.now());
+    const [date, setDate] = useState<DateTime | null>(
+        // Rounded down to the hour, a tidier default than the current minute.
+        DateTime.now().startOf('hour'),
+    );
 
     const { task: timerTask, onClear: onClearTimer, timerSeconds } = use(TimerContext);
     let timerHours = Math.floor(timerSeconds / SECONDS_PER_HOUR);
@@ -96,7 +97,9 @@ export const ProgressUpdater = ({
     const [hours, setHours] = useState(timerHours ? `${timerHours}` : '');
     const [minutes, setMinutes] = useState(timerMinutes ? `${timerMinutes}` : '');
 
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    // The minutes box only accepts digits, so errors are never shown; kept for
+    // the validation in onSubmit.
+    const [, setErrors] = useState<Record<string, string>>({});
     const [notes, setNotes] = useState('');
     const request = useRequest();
 
@@ -123,8 +126,10 @@ export const ProgressUpdater = ({
      * Changes the time being logged by the given number of minutes. Going below zero
      * removes time from the task instead, down to what has already been logged.
      */
-    const onQuickAdd = (change: number) => {
-        const signed = Math.max(addedTime + change, -previousTime);
+    const onQuickAdd = (change: number) => onSetTime(Math.max(addedTime + change, -previousTime));
+
+    /** Sets the time being logged; below zero removes time from the task. */
+    const onSetTime = (signed: number) => {
         const magnitude = Math.abs(signed);
         const newHours = Math.floor(magnitude / 60);
         const newMinutes = magnitude % 60;
@@ -200,11 +205,6 @@ export const ProgressUpdater = ({
             });
     };
 
-    const timeInputSx = {
-        width: 76,
-        '& input': { textAlign: 'right', fontVariantNumeric: 'tabular-nums' },
-    };
-
     return (
         <>
             <DialogContent>
@@ -216,6 +216,7 @@ export const ProgressUpdater = ({
                             max={Math.max(totalCount - startCount, 0)}
                             min={0}
                             suffix={requirement.progressBarSuffix}
+                            hideSlider
                         />
                     )}
 
@@ -231,15 +232,94 @@ export const ProgressUpdater = ({
                         />
                     )}
 
-                    <Stack spacing={1.5}>
+                    <Stack spacing={1}>
                         <Stack
                             direction='row'
-                            sx={{ justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}
+                            sx={{
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                columnGap: 2,
+                                rowGap: 1,
+                            }}
                         >
                             <SectionLabel>{t('timeSpent')}</SectionLabel>
+                            <Stack direction='row'>
+                                <Button
+                                    variant='outlined'
+                                    aria-label={t('removeTime')}
+                                    disabled={addedTime <= -previousTime}
+                                    onClick={() => onQuickAdd(-TIME_STEP_MINUTES)}
+                                    sx={{ px: 1.5, minWidth: 40, borderRadius: '4px 0 0 4px' }}
+                                    data-testid='task-updater-remove-time'
+                                >
+                                    <Remove fontSize='small' />
+                                </Button>
+                                <InputBase
+                                    value={subtract ? `-${enteredTime}` : `${enteredTime}`}
+                                    onChange={(event) => {
+                                        const raw = event.target.value.replace(/[^0-9-]/g, '');
+                                        const n = parseInt(raw) || 0;
+                                        onSetTime(Math.max(n, -previousTime));
+                                    }}
+                                    endAdornment={
+                                        <Typography
+                                            variant='body2'
+                                            sx={{ color: 'text.secondary', pl: 0.5, pr: 1 }}
+                                        >
+                                            {t('minutesShort')}
+                                        </Typography>
+                                    }
+                                    inputProps={{
+                                        inputMode: 'numeric',
+                                        'aria-label': tCommon('minutes'),
+                                        style: { textAlign: 'right' },
+                                    }}
+                                    sx={{
+                                        width: 88,
+                                        border: 1,
+                                        borderColor: 'divider',
+                                        borderLeftWidth: 0,
+                                        borderRightWidth: 0,
+                                        color: subtract ? 'warning.main' : undefined,
+                                        fontVariantNumeric: 'tabular-nums',
+                                    }}
+                                    data-testid='task-updater-minutes'
+                                />
+                                <Button
+                                    variant='outlined'
+                                    aria-label={t('addTime')}
+                                    onClick={() => onQuickAdd(TIME_STEP_MINUTES)}
+                                    sx={{ px: 1.5, minWidth: 40, borderRadius: '0 4px 4px 0' }}
+                                    data-testid='task-updater-add-time'
+                                >
+                                    <Add fontSize='small' />
+                                </Button>
+                            </Stack>
+                        </Stack>
+
+                        <Stack
+                            direction='row'
+                            sx={{ alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}
+                        >
+                            {QUICK_ADD_MINUTES.map((quickMinutes) => (
+                                <Button
+                                    key={quickMinutes}
+                                    size='small'
+                                    onClick={() => onQuickAdd(quickMinutes)}
+                                    sx={{ minWidth: 0, px: 1, textTransform: 'none' }}
+                                    data-testid={`task-updater-quick-add-${quickMinutes}`}
+                                >
+                                    {t('quickAdd', { time: formatTime(quickMinutes, tTime) })}
+                                </Button>
+                            ))}
+                            <Box sx={{ flexGrow: 1 }} />
                             <Typography
                                 variant='caption'
-                                sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}
+                                sx={{
+                                    color: subtract ? 'warning.main' : 'text.secondary',
+                                    fontVariantNumeric: 'tabular-nums',
+                                }}
                                 data-testid='task-updater-total-time'
                             >
                                 {t('totalTimeChange', {
@@ -249,103 +329,6 @@ export const ProgressUpdater = ({
                             </Typography>
                         </Stack>
 
-                        <Stack
-                            direction='row'
-                            sx={{ alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
-                        >
-                            <IconButton
-                                aria-label={t('removeTime')}
-                                disabled={addedTime <= -previousTime}
-                                onClick={() => onQuickAdd(-TIME_STEP_MINUTES)}
-                                sx={{ border: 1, borderColor: 'divider' }}
-                                data-testid='task-updater-remove-time'
-                            >
-                                <Remove fontSize='small' />
-                            </IconButton>
-                            <TextField
-                                size='small'
-                                aria-label={tCommon('hours')}
-                                placeholder='0'
-                                value={hours}
-                                onChange={(event) => setHours(event.target.value)}
-                                error={!!errors.hours}
-                                sx={timeInputSx}
-                                slotProps={{
-                                    htmlInput: {
-                                        inputMode: 'numeric',
-                                        pattern: '[0-9]*',
-                                        'aria-label': tCommon('hours'),
-                                    },
-                                    input: {
-                                        startAdornment: subtract ? (
-                                            <InputAdornment position='start'>−</InputAdornment>
-                                        ) : undefined,
-                                        endAdornment: (
-                                            <InputAdornment position='end'>h</InputAdornment>
-                                        ),
-                                    },
-                                }}
-                            />
-                            <TextField
-                                size='small'
-                                placeholder='0'
-                                value={minutes}
-                                onChange={(event) => setMinutes(event.target.value)}
-                                error={!!errors.minutes}
-                                sx={timeInputSx}
-                                slotProps={{
-                                    htmlInput: {
-                                        inputMode: 'numeric',
-                                        pattern: '[0-9]*',
-                                        'aria-label': tCommon('minutes'),
-                                    },
-                                    input: {
-                                        endAdornment: (
-                                            <InputAdornment position='end'>m</InputAdornment>
-                                        ),
-                                    },
-                                }}
-                            />
-                            <IconButton
-                                aria-label={t('addTime')}
-                                onClick={() => onQuickAdd(TIME_STEP_MINUTES)}
-                                sx={{ border: 1, borderColor: 'divider' }}
-                                data-testid='task-updater-add-time'
-                            >
-                                <Add fontSize='small' />
-                            </IconButton>
-
-                            <Box sx={{ flexGrow: 1 }} />
-
-                            <Stack direction='row' sx={{ gap: 0.75 }}>
-                                {QUICK_ADD_MINUTES.map((quickMinutes) => (
-                                    <Chip
-                                        key={quickMinutes}
-                                        label={t('quickAdd', {
-                                            time: formatTime(quickMinutes, tTime),
-                                        })}
-                                        size='small'
-                                        variant='outlined'
-                                        onClick={() => onQuickAdd(quickMinutes)}
-                                        data-testid={`task-updater-quick-add-${quickMinutes}`}
-                                    />
-                                ))}
-                            </Stack>
-                        </Stack>
-
-                        {(errors.hours || errors.minutes || subtract) && (
-                            <Typography
-                                variant='caption'
-                                sx={{
-                                    color:
-                                        errors.hours || errors.minutes
-                                            ? 'error.main'
-                                            : 'warning.main',
-                                }}
-                            >
-                                {errors.hours || errors.minutes || t('removingTime')}
-                            </Typography>
-                        )}
                         {enteredTime > TIME_WARNING_THRESHOLD_MINS && (
                             <Alert severity='warning'>{t('largeTimeWarning')}</Alert>
                         )}

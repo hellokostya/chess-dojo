@@ -11,9 +11,18 @@ interface InputSliderProps {
     max: number;
     min: number;
     suffix?: string;
+    /** Shows only the label and the − / + control, without the slider. */
+    hideSlider?: boolean;
 }
 
-export const InputSlider = ({ value, setValue, max, min, suffix }: InputSliderProps) => {
+export const InputSlider = ({
+    value,
+    setValue,
+    max,
+    min,
+    suffix,
+    hideSlider,
+}: InputSliderProps) => {
     const t = useTranslations('profile.trainingPlan.inputSlider');
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -136,14 +145,16 @@ export const InputSlider = ({ value, setValue, max, min, suffix }: InputSliderPr
                     </Typography>
                 </Stack>
             </Stack>
-            <Slider
-                value={typeof value === 'number' ? value : 0}
-                onChange={handleSliderChange}
-                aria-label={suffix ?? t('progressCount')}
-                step={1}
-                max={max}
-                min={min}
-            />
+            {!hideSlider && (
+                <Slider
+                    value={typeof value === 'number' ? value : 0}
+                    onChange={handleSliderChange}
+                    aria-label={suffix ?? t('progressCount')}
+                    step={1}
+                    max={max}
+                    min={min}
+                />
+            )}
         </Stack>
     );
 };

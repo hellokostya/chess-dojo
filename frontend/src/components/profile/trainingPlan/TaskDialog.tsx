@@ -114,16 +114,12 @@ function ProgressDialog({
     }
 
     const requirementName = getRequirementName(task, selectedCohort);
-    const isNonDojo = task.scoreboardDisplay === ScoreboardDisplay.NonDojo;
 
-    let dialogTitle = '';
-    if (view === TaskDialogView.History) {
-        dialogTitle = t('historyTitle', { name: requirementName });
-    } else if (isNonDojo) {
-        dialogTitle = t('addTimeTitle', { name: requirementName });
-    } else {
-        dialogTitle = t('updateTitle', { name: requirementName });
-    }
+    // Logging progress is titled with just the task's name.
+    const dialogTitle =
+        view === TaskDialogView.History
+            ? t('historyTitle', { name: requirementName })
+            : requirementName;
 
     return (
         <>

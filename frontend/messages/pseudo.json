@@ -338,6 +338,7 @@
                 "removeTime": "[T] Remove 5 minutes",
                 "removingTime": "[T] Removing time",
                 "timeSpent": "[T] Time spent",
+                "minutesShort": "[T] min",
                 "totalTimeChange": "[T] Total {before} → {after}"
             },
             "scheduleGame": {
