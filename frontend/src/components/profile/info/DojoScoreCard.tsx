@@ -37,6 +37,7 @@ import React from 'react';
 import { useTimelineContext } from '../activity/useTimeline';
 import { CLASSICAL_GAMES_TASK_ID } from '../trainingPlan/suggestedTasks';
 import { TrainingPlanIcon } from '../trainingPlan/TrainingPlanIcon';
+import { CardTitle } from './CardTitle';
 import { TimeManagementRatingRow } from './TimeManagementRatingRow';
 
 const categories = [
@@ -176,19 +177,11 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
     return (
         <Card id='cohort-score-card' sx={{ height: 1 }}>
             <CardContent>
-                <Typography
-                    sx={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.75,
-                        mb: 2,
-                    }}
-                >
-                    <BarChart fontSize='small' sx={{ color: 'primary.main' }} aria-hidden />
-                    {t('progressTitle')}
-                </Typography>
+                <Box sx={{ mb: 2 }}>
+                    <CardTitle icon={<BarChart sx={{ color: 'primary.main' }} aria-hidden />}>
+                        {t('progressTitle')}
+                    </CardTitle>
+                </Box>
 
                 <Stack spacing={2}>
                     {showRatingProgress && (

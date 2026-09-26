@@ -1471,6 +1471,7 @@
         "completedRequirement": "[T] Completed <strong>{name}</strong>",
         "updated": "[T] Updated",
         "updatedRequirement": "[T] Updated <strong>{name}</strong>",
+        "timeLogged": "[T] {time} · {total} total",
         "dojoPoints": "[T] Dojo Points:",
         "totalTime": "[T] Total Time:",
         "customTask": "[T] Custom Task",

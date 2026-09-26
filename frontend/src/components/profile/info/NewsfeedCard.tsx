@@ -11,6 +11,7 @@ import { Feed, OpenInNew } from '@mui/icons-material';
 import { Button, Card, CardContent, Skeleton, Stack, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import { CardTitle } from './CardTitle';
 
 const MAX_ITEMS = 3;
 const MAX_COMMENTS = 2;
@@ -64,20 +65,14 @@ export function NewsfeedCard() {
                             alignItems: 'center',
                         }}
                     >
-                        <Stack
-                            direction='row'
-                            spacing={1}
-                            sx={{
-                                alignItems: 'center',
-                            }}
-                        >
-                            <Feed fontSize='small' color='primary' />
-                            <Typography variant='h6'>{t('newsfeed')}</Typography>
-                        </Stack>
+                        <CardTitle icon={<Feed color='primary' aria-hidden />}>
+                            {t('newsfeed')}
+                        </CardTitle>
                         <Button
                             href='/newsfeed'
                             size='small'
                             endIcon={<OpenInNew fontSize='small' />}
+                            sx={{ textTransform: 'none', color: 'text.secondary' }}
                             data-testid='newsfeed-view-all'
                         >
                             {t('viewAll')}
