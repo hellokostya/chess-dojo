@@ -1,8 +1,8 @@
 import { useApi } from '@/api/Api';
 import { TimelineEntry, TimelineSpecialRequirementId } from '@/database/timeline';
-import { Box, Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import CommentEditor from '../comments/CommentEditor';
-import { AVATAR_SIZE, COLUMN_GAP, CompactNewsfeedItem } from './CompactNewsfeedItem';
+import { CompactNewsfeedItem } from './CompactNewsfeedItem';
 
 export const isRestDayEntry = (entry: TimelineEntry) =>
     entry.requirementId === TimelineSpecialRequirementId.RestDay;
@@ -16,7 +16,7 @@ interface NewsfeedItemProps {
 
 /**
  * A newsfeed entry on the newsfeed page: the same entry as the profile's feed,
- * in its own card, with a box to comment on it directly.
+ * in its own card, with a box to comment on it beside the reactions.
  */
 const NewsfeedItem: React.FC<NewsfeedItemProps> = ({
     entry,
@@ -34,21 +34,15 @@ const NewsfeedItem: React.FC<NewsfeedItemProps> = ({
                     onEdit={onEdit}
                     maxComments={maxComments}
                     onChangeActivity={onChangeActivity}
-                    hideCommentLink
+                    commentBox={
+                        <CommentEditor
+                            createFunctionProps={{ owner: entry.owner, id: entry.id }}
+                            createFunction={api.createNewsfeedComment}
+                            onSuccess={onEdit}
+                            compact
+                        />
+                    }
                 />
-                {/* Lined up with the entry's content, to the right of the avatar. */}
-                <Box
-                    sx={{
-                        pl: `calc(${AVATAR_SIZE}px + ${COLUMN_GAP} * var(--mui-spacing, 8px))`,
-                        mt: 1,
-                    }}
-                >
-                    <CommentEditor
-                        createFunctionProps={{ owner: entry.owner, id: entry.id }}
-                        createFunction={api.createNewsfeedComment}
-                        onSuccess={onEdit}
-                    />
-                </Box>
             </CardContent>
         </Card>
     );

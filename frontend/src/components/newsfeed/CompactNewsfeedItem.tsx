@@ -66,13 +66,13 @@ export function CompactNewsfeedItem({
     onEdit,
     maxComments,
     onChangeActivity,
-    hideCommentLink,
+    commentBox,
 }: {
     entry: TimelineEntry;
     onEdit: (entry: TimelineEntry) => void;
     maxComments?: number;
-    /** Hides the link to comment, where a comment box is already shown. */
-    hideCommentLink?: boolean;
+    /** A box to comment in, shown beside the reactions in place of the link to comment. */
+    commentBox?: React.ReactNode;
     /** When given, the owner of the entry gets a button to edit it. */
     onChangeActivity?: (entry: TimelineEntry) => void;
 }) {
@@ -120,7 +120,9 @@ export function CompactNewsfeedItem({
                         reactions={entry.reactions}
                         onEdit={onEdit}
                     />
-                    {!hideCommentLink && (
+                    {commentBox ? (
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>{commentBox}</Box>
+                    ) : (
                         <Button
                             href={link}
                             size='small'
