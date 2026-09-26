@@ -351,7 +351,7 @@ export function Heatmap({
 
                 '& .react-activity-calendar__scroll-container': {
                     paddingTop: '1px',
-                    paddingBottom: '10px',
+                    paddingBottom: 0,
                     overflow: 'visible !important',
                 },
 
@@ -443,10 +443,19 @@ export function Heatmap({
                 </Stack>
             </Stack>
 
-            <Stack ref={scrollerRef} direction='row' sx={{ overflowX: 'auto' }}>
+            <Stack
+                ref={scrollerRef}
+                direction='row'
+                sx={{
+                    overflowX: 'auto',
+                    // Still scrolls sideways, without a scrollbar strip under the weeks.
+                    scrollbarWidth: 'none',
+                    '&::-webkit-scrollbar': { display: 'none' },
+                }}
+            >
                 <Paper
                     elevation={1}
-                    sx={{ position: 'sticky', left: 0, pr: 0.75, borderRadius: 0, pb: 4 }}
+                    sx={{ position: 'sticky', left: 0, pr: 0.75, borderRadius: 0 }}
                     {...slotProps?.weekdayLabelPaper}
                 >
                     <Stack>
