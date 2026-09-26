@@ -266,7 +266,7 @@ export const ProgressUpdater = ({
                             </Box>
                         }
                     >
-                        <Stack spacing={0.75} sx={{ width: STEPPER_WIDTH }}>
+                        <Stack spacing={1.5} sx={{ width: STEPPER_WIDTH }}>
                             <Stepper
                                 value={subtract ? `-${enteredTime}` : `${enteredTime}`}
                                 onChange={(text) => {
