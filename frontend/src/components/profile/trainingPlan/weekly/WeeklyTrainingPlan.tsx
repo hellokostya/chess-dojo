@@ -22,6 +22,8 @@ import { useLocalStorage } from 'usehooks-ts';
 import { CategoryLabel } from '../daily/DailyCard';
 import { TaskDialog, TaskDialogView } from '../TaskDialog';
 import { taskDisplayName } from '../taskDisplayName';
+import { splitTaskVerb } from '../taskVerb';
+import { TaskVerbIcon } from '../TaskVerbIcon';
 import { TrainingPlanIcon } from '../TrainingPlanIcon';
 import { TrainingPlanContext } from '../TrainingPlanTab';
 import { useTrainingPlanProgress } from '../useTrainingPlan';
@@ -421,7 +423,10 @@ function WeekCalendarChip({
     const tTime = useTranslations('common');
     const task = useTranslatedRequirement(row.task) ?? row.task;
     const fullName = taskDisplayName({ task, cohort });
-    const shortName = ('shortName' in task && task.shortName) || fullName;
+    // The task's verb ("Solve", "Read", "Spar") is shown as an icon, so the label
+    // drops it: "Solve Polgar M2s" reads as a puzzle icon and "Polgar M2s".
+    const { verb, rest } = splitTaskVerb(fullName);
+    const shortName = splitTaskVerb(('shortName' in task && task.shortName) || rest).rest;
     const color = CategoryColors[task.category];
     const { state, looksDone, timeKind, percent } = getChipDisplay(cell, day);
 
@@ -489,8 +494,12 @@ function WeekCalendarChip({
                     />
                 )}
                 {looksDone && <Check sx={{ fontSize: '0.85rem', color, zIndex: 1 }} />}
-                <Box sx={{ zIndex: 1, display: 'flex', color }}>
-                    <TrainingPlanIcon category={task.category} sx={{ fontSize: '0.95rem' }} />
+                <Box sx={{ zIndex: 1, display: 'flex', color, '& [role=img]': { color } }}>
+                    {verb ? (
+                        <TaskVerbIcon verb={verb} size='0.95rem' />
+                    ) : (
+                        <TrainingPlanIcon category={task.category} sx={{ fontSize: '0.95rem' }} />
+                    )}
                 </Box>
                 <Box
                     component='span'
