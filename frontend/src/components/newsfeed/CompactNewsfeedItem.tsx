@@ -17,8 +17,8 @@ import { useEntryDateTime } from './NewsfeedItemHeader';
 import ReactionList from './ReactionList';
 
 /** The size of the avatar column; the entry's content lines up to its right. */
-const AVATAR_SIZE = 36;
-const COLUMN_GAP = 1.5;
+export const AVATAR_SIZE = 36;
+export const COLUMN_GAP = 1.5;
 
 /** The author's name, cohort badge and the entry's time, stacked. */
 function EntryByline({ entry }: { entry: TimelineEntry }) {
@@ -66,10 +66,13 @@ export function CompactNewsfeedItem({
     onEdit,
     maxComments,
     onChangeActivity,
+    hideCommentLink,
 }: {
     entry: TimelineEntry;
     onEdit: (entry: TimelineEntry) => void;
     maxComments?: number;
+    /** Hides the link to comment, where a comment box is already shown. */
+    hideCommentLink?: boolean;
     /** When given, the owner of the entry gets a button to edit it. */
     onChangeActivity?: (entry: TimelineEntry) => void;
 }) {
@@ -117,18 +120,20 @@ export function CompactNewsfeedItem({
                         reactions={entry.reactions}
                         onEdit={onEdit}
                     />
-                    <Button
-                        href={link}
-                        size='small'
-                        color='inherit'
-                        startIcon={
-                            <ChatBubbleOutlineOutlined sx={{ fontSize: '1rem !important' }} />
-                        }
-                        sx={{ color: 'text.secondary', textTransform: 'none', minWidth: 0 }}
-                        data-testid='compact-newsfeed-comment'
-                    >
-                        {entry.comments?.length ? entry.comments.length : t('comment')}
-                    </Button>
+                    {!hideCommentLink && (
+                        <Button
+                            href={link}
+                            size='small'
+                            color='inherit'
+                            startIcon={
+                                <ChatBubbleOutlineOutlined sx={{ fontSize: '1rem !important' }} />
+                            }
+                            sx={{ color: 'text.secondary', textTransform: 'none', minWidth: 0 }}
+                            data-testid='compact-newsfeed-comment'
+                        >
+                            {entry.comments?.length ? entry.comments.length : t('comment')}
+                        </Button>
+                    )}
                     <Box sx={{ flexGrow: 1 }} />
                     {onChangeActivity && entry.owner === user?.username && (
                         <Tooltip title={t('editActivity')}>
