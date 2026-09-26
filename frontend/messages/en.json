@@ -336,7 +336,9 @@
                 "quickAdd": "+{time}",
                 "addTime": "Add 5 minutes",
                 "removeTime": "Remove 5 minutes",
-                "removingTime": "Removing time"
+                "removingTime": "Removing time",
+                "timeSpent": "Time spent",
+                "totalTimeChange": "Total {before} → {after}"
             },
             "scheduleGame": {
                 "title": "Schedule Your Next Classical Game",

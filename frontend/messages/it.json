@@ -336,7 +336,9 @@
                 "quickAdd": "+{time}",
                 "addTime": "Aggiungi 5 minuti",
                 "removeTime": "Togli 5 minuti",
-                "removingTime": "Tempo da togliere"
+                "removingTime": "Tempo da togliere",
+                "timeSpent": "Tempo impiegato",
+                "totalTimeChange": "Totale {before} → {after}"
             },
             "scheduleGame": {
                 "title": "Pianifica la tua prossima partita classica",

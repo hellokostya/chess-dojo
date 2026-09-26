@@ -17,23 +17,25 @@ import { TimeFormat } from '@/database/user';
 import { Add, Remove } from '@mui/icons-material';
 import {
     Alert,
+    Box,
     Button,
     Checkbox,
     Chip,
     DialogActions,
     DialogContent,
-    DialogContentText,
     FormControlLabel,
-    Grid,
     IconButton,
+    InputAdornment,
     Stack,
     TextField,
+    Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers-pro';
 import { DateTime } from 'luxon';
 import { useTranslations } from 'next-intl';
 import { use, useState } from 'react';
 import { InputSlider } from './InputSlider';
+import { SectionLabel } from './SectionLabel';
 import { TaskDialogView } from './TaskDialog';
 
 const NUMBER_REGEX = /^[0-9]*$/;
@@ -198,10 +200,15 @@ export const ProgressUpdater = ({
             });
     };
 
+    const timeInputSx = {
+        width: 76,
+        '& input': { textAlign: 'right', fontVariantNumeric: 'tabular-nums' },
+    };
+
     return (
         <>
             <DialogContent>
-                <Stack spacing={3} sx={{ mt: isMinutes || isNonDojo ? 1 : undefined }}>
+                <Stack spacing={3} sx={{ pt: 1 }}>
                     {isSlider && (
                         <InputSlider
                             value={value}
@@ -224,97 +231,29 @@ export const ProgressUpdater = ({
                         />
                     )}
 
-                    <TextField
-                        label={tCommon('comments')}
-                        placeholder={tCommon('commentsPlaceholder')}
-                        multiline={true}
-                        maxRows={3}
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                    />
-
-                    <Stack spacing={2}>
+                    <Stack spacing={1.5}>
                         <Stack
                             direction='row'
-                            sx={{
-                                flexWrap: 'wrap',
-                                gap: 1,
-                                alignItems: 'center',
-                            }}
+                            sx={{ justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}
                         >
-                            {QUICK_ADD_MINUTES.map((quickMinutes) => (
-                                <Chip
-                                    key={quickMinutes}
-                                    label={t('quickAdd', {
-                                        time: formatTime(quickMinutes, tTime),
-                                    })}
-                                    size='small'
-                                    variant='outlined'
-                                    onClick={() => onQuickAdd(quickMinutes)}
-                                    data-testid={`task-updater-quick-add-${quickMinutes}`}
-                                />
-                            ))}
+                            <SectionLabel>{t('timeSpent')}</SectionLabel>
+                            <Typography
+                                variant='caption'
+                                sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}
+                                data-testid='task-updater-total-time'
+                            >
+                                {t('totalTimeChange', {
+                                    before: formatTime(previousTime, tTime),
+                                    after: formatTime(totalTime, tTime),
+                                })}
+                            </Typography>
                         </Stack>
 
-                        <Grid
-                            container
-                            sx={{
-                                width: 1,
-                                gap: 2,
-                            }}
+                        <Stack
+                            direction='row'
+                            sx={{ alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
                         >
-                            <Grid size={{ xs: 12, sm: 'grow' }}>
-                                <DateTimePicker
-                                    label={tCommon('date')}
-                                    disableFuture
-                                    value={date}
-                                    onChange={setDate}
-                                    slotProps={{
-                                        textField: {
-                                            fullWidth: true,
-                                        },
-                                    }}
-                                    ampm={useTwelveHourClock}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 'grow' }}>
-                                <TextField
-                                    label={tCommon('hours')}
-                                    value={hours}
-                                    slotProps={{
-                                        htmlInput: {
-                                            inputMode: 'numeric',
-                                            pattern: '[0-9]*',
-                                        },
-                                    }}
-                                    onChange={(event) => setHours(event.target.value)}
-                                    error={!!errors.hours}
-                                    helperText={errors.hours}
-                                    fullWidth
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 'grow' }}>
-                                <TextField
-                                    label={tCommon('minutes')}
-                                    value={minutes}
-                                    slotProps={{
-                                        htmlInput: {
-                                            inputMode: 'numeric',
-                                            pattern: '[0-9]*',
-                                        },
-                                    }}
-                                    onChange={(event) => setMinutes(event.target.value)}
-                                    error={!!errors.minutes}
-                                    helperText={
-                                        errors.minutes || (subtract ? t('removingTime') : undefined)
-                                    }
-                                    fullWidth
-                                />
-                            </Grid>
-                        </Grid>
-                        <Stack direction='row' sx={{ gap: 1 }}>
                             <IconButton
-                                size='small'
                                 aria-label={t('removeTime')}
                                 disabled={addedTime <= -previousTime}
                                 onClick={() => onQuickAdd(-TIME_STEP_MINUTES)}
@@ -323,8 +262,51 @@ export const ProgressUpdater = ({
                             >
                                 <Remove fontSize='small' />
                             </IconButton>
-                            <IconButton
+                            <TextField
                                 size='small'
+                                aria-label={tCommon('hours')}
+                                placeholder='0'
+                                value={hours}
+                                onChange={(event) => setHours(event.target.value)}
+                                error={!!errors.hours}
+                                sx={timeInputSx}
+                                slotProps={{
+                                    htmlInput: {
+                                        inputMode: 'numeric',
+                                        pattern: '[0-9]*',
+                                        'aria-label': tCommon('hours'),
+                                    },
+                                    input: {
+                                        startAdornment: subtract ? (
+                                            <InputAdornment position='start'>−</InputAdornment>
+                                        ) : undefined,
+                                        endAdornment: (
+                                            <InputAdornment position='end'>h</InputAdornment>
+                                        ),
+                                    },
+                                }}
+                            />
+                            <TextField
+                                size='small'
+                                placeholder='0'
+                                value={minutes}
+                                onChange={(event) => setMinutes(event.target.value)}
+                                error={!!errors.minutes}
+                                sx={timeInputSx}
+                                slotProps={{
+                                    htmlInput: {
+                                        inputMode: 'numeric',
+                                        pattern: '[0-9]*',
+                                        'aria-label': tCommon('minutes'),
+                                    },
+                                    input: {
+                                        endAdornment: (
+                                            <InputAdornment position='end'>m</InputAdornment>
+                                        ),
+                                    },
+                                }}
+                            />
+                            <IconButton
                                 aria-label={t('addTime')}
                                 onClick={() => onQuickAdd(TIME_STEP_MINUTES)}
                                 sx={{ border: 1, borderColor: 'divider' }}
@@ -332,46 +314,100 @@ export const ProgressUpdater = ({
                             >
                                 <Add fontSize='small' />
                             </IconButton>
+
+                            <Box sx={{ flexGrow: 1 }} />
+
+                            <Stack direction='row' sx={{ gap: 0.75 }}>
+                                {QUICK_ADD_MINUTES.map((quickMinutes) => (
+                                    <Chip
+                                        key={quickMinutes}
+                                        label={t('quickAdd', {
+                                            time: formatTime(quickMinutes, tTime),
+                                        })}
+                                        size='small'
+                                        variant='outlined'
+                                        onClick={() => onQuickAdd(quickMinutes)}
+                                        data-testid={`task-updater-quick-add-${quickMinutes}`}
+                                    />
+                                ))}
+                            </Stack>
                         </Stack>
-                        <DialogContentText>
-                            {t('totalTime', {
-                                hours: Math.floor(totalTime / 60),
-                                minutes: totalTime % 60,
-                            })}
-                        </DialogContentText>
+
+                        {(errors.hours || errors.minutes || subtract) && (
+                            <Typography
+                                variant='caption'
+                                sx={{
+                                    color:
+                                        errors.hours || errors.minutes
+                                            ? 'error.main'
+                                            : 'warning.main',
+                                }}
+                            >
+                                {errors.hours || errors.minutes || t('removingTime')}
+                            </Typography>
+                        )}
                         {enteredTime > TIME_WARNING_THRESHOLD_MINS && (
-                            <Alert severity='warning' variant='filled'>
-                                {t('largeTimeWarning')}
-                            </Alert>
+                            <Alert severity='warning'>{t('largeTimeWarning')}</Alert>
                         )}
                     </Stack>
+
+                    <DateTimePicker
+                        label={tCommon('date')}
+                        disableFuture
+                        value={date}
+                        onChange={setDate}
+                        slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                        ampm={useTwelveHourClock}
+                    />
+
+                    <TextField
+                        label={tCommon('comments')}
+                        placeholder={tCommon('commentsPlaceholder')}
+                        multiline
+                        minRows={2}
+                        maxRows={4}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                    />
                 </Stack>
             </DialogContent>
-            <DialogActions sx={{ flexWrap: 'wrap' }}>
-                <Button onClick={onClose} disabled={request.isLoading()}>
-                    {tCommon('cancel')}
-                </Button>
+            <DialogActions sx={{ flexWrap: 'wrap', px: 3, pb: 2, gap: 1 }}>
                 {setView && (
                     <>
                         <Button
+                            color='inherit'
                             onClick={() => setView(TaskDialogView.Details)}
                             disabled={request.isLoading()}
+                            sx={{ color: 'text.secondary', textTransform: 'none' }}
                         >
                             {tCommon('taskDetails')}
                         </Button>
                         <Button
+                            color='inherit'
                             data-testid='task-updater-show-history-button'
                             onClick={() => setView(TaskDialogView.History)}
                             disabled={request.isLoading()}
+                            sx={{ color: 'text.secondary', textTransform: 'none' }}
                         >
                             {tCommon('showHistory')}
                         </Button>
                     </>
                 )}
+                <Box sx={{ flexGrow: 1 }} />
                 <Button
+                    onClick={onClose}
+                    disabled={request.isLoading()}
+                    sx={{ textTransform: 'none' }}
+                >
+                    {tCommon('cancel')}
+                </Button>
+                <Button
+                    variant='contained'
+                    disableElevation
                     data-testid='task-updater-save-button'
                     loading={request.isLoading()}
                     onClick={onSubmit}
+                    sx={{ borderRadius: 999, px: 2.5, textTransform: 'none', fontWeight: 600 }}
                 >
                     {tCommon('update')}
                 </Button>

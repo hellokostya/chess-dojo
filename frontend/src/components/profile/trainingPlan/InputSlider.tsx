@@ -1,8 +1,9 @@
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import { Button, Grid, InputBase, Slider, Stack, Typography } from '@mui/material';
+import { Button, InputBase, Slider, Stack, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
+import { SectionLabel } from './SectionLabel';
 
 interface InputSliderProps {
     value: number;
@@ -54,61 +55,19 @@ export const InputSlider = ({ value, setValue, max, min, suffix }: InputSliderPr
     };
 
     return (
-        <Grid
-            container
-            sx={{
-                width: 1,
-                columnGap: 4,
-                rowGap: 2,
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                pt: 1,
-            }}
-        >
-            <Grid
-                size={{
-                    xs: 12,
-                    sm: 'grow',
-                }}
+        <Stack spacing={0.5} sx={{ width: 1 }}>
+            <Stack
+                direction='row'
                 sx={{
-                    display: 'flex',
-                    alignItems: 'end',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    columnGap: 2,
+                    rowGap: 1,
                 }}
             >
-                <Slider
-                    value={typeof value === 'number' ? value : 0}
-                    onChange={handleSliderChange}
-                    aria-labelledby='input-slider'
-                    step={1}
-                    max={max}
-                    min={min}
-                    sx={{ mb: suffix ? -2.5 : 0 }}
-                />
-            </Grid>
-            <Grid
-                size={{
-                    xs: 12,
-                    sm: 'auto',
-                }}
-            >
-                <Stack
-                    spacing={0.5}
-                    sx={{
-                        alignItems: 'start',
-                    }}
-                >
-                    {suffix && (
-                        <Typography
-                            variant='subtitle2'
-                            sx={{
-                                color: 'text.secondary',
-                                textAlign: 'center',
-                                width: 1,
-                            }}
-                        >
-                            {suffix}
-                        </Typography>
-                    )}
+                <SectionLabel>{suffix ?? t('progressCount')}</SectionLabel>
+                <Stack direction='row' sx={{ alignItems: 'center', gap: 1 }}>
                     <Stack direction='row' aria-label={suffix ?? t('progressCount')}>
                         <Button
                             data-testid='task-updater-decrement'
@@ -165,8 +124,26 @@ export const InputSlider = ({ value, setValue, max, min, suffix }: InputSliderPr
                             <AddIcon fontSize='small' />
                         </Button>
                     </Stack>
+                    <Typography
+                        variant='body2'
+                        sx={{
+                            color: 'text.secondary',
+                            fontVariantNumeric: 'tabular-nums',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        / {max}
+                    </Typography>
                 </Stack>
-            </Grid>
-        </Grid>
+            </Stack>
+            <Slider
+                value={typeof value === 'number' ? value : 0}
+                onChange={handleSliderChange}
+                aria-label={suffix ?? t('progressCount')}
+                step={1}
+                max={max}
+                min={min}
+            />
+        </Stack>
     );
 };
