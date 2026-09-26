@@ -245,12 +245,6 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
                                 ? `${formatTime(current, tCommon)} / ${formatTime(total, tCommon)}`
                                 : `${current} / ${total}`}
                         </Typography>
-                        <Typography
-                            variant='caption'
-                            sx={{ color: 'text.secondary', lineHeight: 1.2, order: -1 }}
-                        >
-                            {percentLabel(percent)}
-                        </Typography>
                     </Stack>
                 )}
             </Stack>
@@ -313,6 +307,18 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
                 {entry.dojoPoints > 0 && (
                     <Typography variant='caption' sx={{ color: 'text.secondary' }}>
                         {t('pointsGained', { points: Math.round(100 * entry.dojoPoints) / 100 })}
+                    </Typography>
+                )}
+                {showBar && (
+                    <Typography
+                        variant='caption'
+                        sx={{
+                            color: 'text.secondary',
+                            ml: 'auto',
+                            fontVariantNumeric: 'tabular-nums',
+                        }}
+                    >
+                        {percentLabel(percent)}
                     </Typography>
                 )}
             </Stack>
