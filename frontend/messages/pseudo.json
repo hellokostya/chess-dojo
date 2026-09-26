@@ -333,7 +333,6 @@
                 "markComplete": "[T] Mark as Completed?",
                 "totalTime": "[T] Total Time: {hours}h {minutes}m",
                 "largeTimeWarning": "[T] You're adding a lot of time! Please double-check your input before saving.",
-                "quickAdd": "[T] +{time}",
                 "addTime": "[T] Add 5 minutes",
                 "removeTime": "[T] Remove 5 minutes",
                 "removingTime": "[T] Removing time",

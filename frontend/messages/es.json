@@ -333,7 +333,6 @@
                 "markComplete": "¿Marcar como completada?",
                 "totalTime": "Tiempo total: {hours}h {minutes}m",
                 "largeTimeWarning": "¡Estás añadiendo mucho tiempo! Revisa bien los datos antes de guardar.",
-                "quickAdd": "+{time}",
                 "addTime": "Añadir 5 minutos",
                 "removeTime": "Restar 5 minutos",
                 "removingTime": "Restando tiempo",

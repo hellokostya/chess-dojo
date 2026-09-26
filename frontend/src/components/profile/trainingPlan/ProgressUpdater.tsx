@@ -39,7 +39,7 @@ const NUMBER_REGEX = /^[0-9]*$/;
 /** How much the −/+ buttons change the time by, in minutes. */
 const TIME_STEP_MINUTES = 5;
 const TIME_WARNING_THRESHOLD_MINS = 60 * 5;
-/** The increments offered by the quick-add chips, in minutes. */
+/** The preset times offered under the time stepper, in minutes. */
 const QUICK_ADD_MINUTES = [15, 30, 60];
 const SECONDS_PER_HOUR = 3600;
 
@@ -290,18 +290,22 @@ export const ProgressUpdater = ({
                                         size='small'
                                         variant='outlined'
                                         color='inherit'
-                                        onClick={() => onQuickAdd(quickMinutes)}
+                                        onClick={() => onSetTime(quickMinutes)}
                                         sx={{
                                             flex: 1,
                                             minWidth: 0,
                                             borderRadius: 2,
-                                            borderColor: 'divider',
+                                            // The preset matching the time entered is outlined.
+                                            borderColor:
+                                                addedTime === quickMinutes
+                                                    ? 'text.primary'
+                                                    : 'divider',
                                             color: 'text.primary',
                                             textTransform: 'none',
                                         }}
                                         data-testid={`task-updater-quick-add-${quickMinutes}`}
                                     >
-                                        {t('quickAdd', { time: formatTime(quickMinutes, tTime) })}
+                                        {formatTime(quickMinutes, tTime)}
                                     </Button>
                                 ))}
                             </Stack>
