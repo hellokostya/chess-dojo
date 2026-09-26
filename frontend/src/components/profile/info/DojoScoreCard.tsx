@@ -21,7 +21,7 @@ import { CrossedSwordIcon } from '@/style/CrossedSwordIcon';
 import { RatingSystemIcon } from '@/style/RatingSystemIcons';
 import { CategoryColors } from '@/style/ThemeProvider';
 import { isCustom } from '@jackstenglein/chess-dojo-common/src/ratings/ratings';
-import { Insights, TaskAlt } from '@mui/icons-material';
+import { BarChart, TaskAlt } from '@mui/icons-material';
 import {
     Box,
     Card,
@@ -157,6 +157,16 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
 
     const timeManagementRating = user.timeManagementRating;
 
+    // A custom rating's own name is shown only when it adds something: a system
+    // named "Custom" reads "Custom", not "Custom (Custom)".
+    const ratingSystemLabel = formatRatingSystem(user.ratingSystem, tRating);
+    const ratingLabel =
+        isCustom(user.ratingSystem) &&
+        ratingSystemName &&
+        ratingSystemName.trim().toLowerCase() !== ratingSystemLabel.trim().toLowerCase()
+            ? `${ratingSystemLabel} (${ratingSystemName})`
+            : ratingSystemLabel;
+
     const ratingPercent =
         showRatingProgress && graduationBoundary > minRatingBoundary
             ? (100 * (currentRating - minRatingBoundary)) / (graduationBoundary - minRatingBoundary)
@@ -175,7 +185,7 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
                         mb: 2,
                     }}
                 >
-                    <Insights fontSize='small' sx={{ color: 'primary.main' }} aria-hidden />
+                    <BarChart fontSize='small' sx={{ color: 'primary.main' }} aria-hidden />
                     {t('progressTitle')}
                 </Typography>
 
@@ -183,11 +193,7 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
                     {showRatingProgress && (
                         <ProgressRow
                             icon={<RatingSystemIcon system={user.ratingSystem} size='small' />}
-                            label={`${formatRatingSystem(user.ratingSystem, tRating)}${
-                                isCustom(user.ratingSystem) && ratingSystemName
-                                    ? ` (${ratingSystemName})`
-                                    : ''
-                            }`}
+                            label={ratingLabel}
                             value={`${currentRating} / ${graduationBoundary}`}
                             percent={ratingPercent}
                             color={theme.palette.primary.main}

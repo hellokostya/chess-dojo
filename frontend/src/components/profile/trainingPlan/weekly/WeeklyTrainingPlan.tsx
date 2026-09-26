@@ -22,7 +22,7 @@ import { useLocalStorage } from 'usehooks-ts';
 import { CategoryLabel } from '../daily/DailyCard';
 import { TaskDialog, TaskDialogView } from '../TaskDialog';
 import { taskDisplayName } from '../taskDisplayName';
-import { splitTaskVerb } from '../taskVerb';
+import { splitTaskVerb, TaskVerb } from '../taskVerb';
 import { TaskVerbIcon } from '../TaskVerbIcon';
 import { TrainingPlanIcon } from '../TrainingPlanIcon';
 import { TrainingPlanContext } from '../TrainingPlanTab';
@@ -39,6 +39,9 @@ import {
     WeekDay,
     WeekRow,
 } from './weekPlan';
+
+/** Verbs that stay in a task's name on the weekly plan, alongside their icon. */
+const VERBS_KEPT_IN_NAME: TaskVerb[] = ['review', 'spar'];
 
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
 
@@ -425,8 +428,11 @@ function WeekCalendarChip({
     const fullName = taskDisplayName({ task, cohort });
     // The task's verb ("Solve", "Read", "Spar") is shown as an icon, so the label
     // drops it: "Solve Polgar M2s" reads as a puzzle icon and "Polgar M2s".
+    // Review and spar tasks read oddly without their verb, so they keep it.
     const { verb, rest } = splitTaskVerb(fullName);
-    const shortName = splitTaskVerb(('shortName' in task && task.shortName) || rest).rest;
+    const keepsVerb = verb !== undefined && VERBS_KEPT_IN_NAME.includes(verb);
+    const baseName = ('shortName' in task && task.shortName) || (keepsVerb ? fullName : rest);
+    const shortName = keepsVerb ? baseName : splitTaskVerb(baseName).rest;
     const color = CategoryColors[task.category];
     const { state, looksDone, timeKind, percent } = getChipDisplay(cell, day);
 
