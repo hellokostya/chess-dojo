@@ -333,7 +333,10 @@
                 "markComplete": "Marcar como concluída?",
                 "totalTime": "Tempo total: {hours}h {minutes}m",
                 "largeTimeWarning": "Você está adicionando muito tempo! Confira bem os dados antes de salvar.",
-                "quickAdd": "+{time}"
+                "quickAdd": "+{time}",
+                "quickRemove": "−{time}",
+                "addTime": "Adicionar",
+                "removeTime": "Remover"
             },
             "scheduleGame": {
                 "title": "Agende sua próxima partida clássica",

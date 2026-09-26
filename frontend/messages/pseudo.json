@@ -333,7 +333,10 @@
                 "markComplete": "[T] Mark as Completed?",
                 "totalTime": "[T] Total Time: {hours}h {minutes}m",
                 "largeTimeWarning": "[T] You're adding a lot of time! Please double-check your input before saving.",
-                "quickAdd": "[T] +{time}"
+                "quickAdd": "[T] +{time}",
+                "quickRemove": "[T] −{time}",
+                "addTime": "[T] Add",
+                "removeTime": "[T] Remove"
             },
             "scheduleGame": {
                 "title": "[T] Schedule Your Next Classical Game",

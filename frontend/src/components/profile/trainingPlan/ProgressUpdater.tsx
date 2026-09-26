@@ -14,6 +14,7 @@ import {
     isRequirement,
 } from '@/database/requirement';
 import { TimeFormat } from '@/database/user';
+import { Add, Remove } from '@mui/icons-material';
 import {
     Alert,
     Button,
@@ -26,6 +27,8 @@ import {
     Grid,
     Stack,
     TextField,
+    ToggleButton,
+    ToggleButtonGroup,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers-pro';
 import { DateTime } from 'luxon';
@@ -68,7 +71,11 @@ export const ProgressUpdater = ({
     const totalCount = requirement.counts[cohort] || 0;
     const currentCount = getCurrentCount({ cohort, requirement, progress, timeline: entries });
 
-    const [value, setValue] = useState<number>(currentCount);
+    // Counts are edited as units done past the task's start, matching the card:
+    // a task starting at puzzle #307 shows 0 until puzzle #307 is solved.
+    const startCount = requirement.startCount || 0;
+    const [value, setValue] = useState<number>(Math.max(currentCount - startCount, 0));
+    const [subtract, setSubtract] = useState(false);
     const [markComplete, setMarkComplete] = useState(true);
     const [date, setDate] = useState<DateTime | null>(DateTime.now());
 
@@ -103,8 +110,11 @@ export const ProgressUpdater = ({
 
     const hoursInt = parseInt(hours) || 0;
     const minutesInt = parseInt(minutes) || 0;
-    const totalTime = 60 * hoursInt + minutesInt + (progress?.minutesSpent[cohort] ?? 0);
-    const addedTime = 60 * hoursInt + minutesInt;
+    const previousTime = progress?.minutesSpent[cohort] ?? 0;
+    const enteredTime = 60 * hoursInt + minutesInt;
+    // Removing time can't take the task's total below zero.
+    const addedTime = subtract ? -Math.min(enteredTime, previousTime) : enteredTime;
+    const totalTime = previousTime + addedTime;
 
     /** Adds the given number of minutes to the hours/minutes fields. */
     const onQuickAdd = (addedMinutes: number) => {
@@ -134,7 +144,7 @@ export const ProgressUpdater = ({
             return;
         }
 
-        let newCount = value;
+        let newCount = value + startCount;
         if (isMinutes) {
             newCount = totalTime;
         } else if (isNonDojo) {
@@ -190,8 +200,8 @@ export const ProgressUpdater = ({
                         <InputSlider
                             value={value}
                             setValue={setValue}
-                            max={totalCount}
-                            min={requirement.startCount || 0}
+                            max={Math.max(totalCount - startCount, 0)}
+                            min={0}
                             suffix={requirement.progressBarSuffix}
                         />
                     )}
@@ -226,10 +236,36 @@ export const ProgressUpdater = ({
                                 alignItems: 'center',
                             }}
                         >
+                            <ToggleButtonGroup
+                                size='small'
+                                exclusive
+                                value={subtract ? 'remove' : 'add'}
+                                onChange={(_, v: string | null) => v && setSubtract(v === 'remove')}
+                                sx={{ mr: 0.5 }}
+                                data-testid='task-updater-time-direction'
+                            >
+                                <ToggleButton
+                                    value='add'
+                                    aria-label={t('addTime')}
+                                    sx={{ px: 1.25, py: 0.25, textTransform: 'none' }}
+                                >
+                                    <Add fontSize='small' sx={{ mr: 0.5 }} />
+                                    {t('addTime')}
+                                </ToggleButton>
+                                <ToggleButton
+                                    value='remove'
+                                    aria-label={t('removeTime')}
+                                    sx={{ px: 1.25, py: 0.25, textTransform: 'none' }}
+                                    data-testid='task-updater-remove-time'
+                                >
+                                    <Remove fontSize='small' sx={{ mr: 0.5 }} />
+                                    {t('removeTime')}
+                                </ToggleButton>
+                            </ToggleButtonGroup>
                             {QUICK_ADD_MINUTES.map((quickMinutes) => (
                                 <Chip
                                     key={quickMinutes}
-                                    label={t('quickAdd', {
+                                    label={t(subtract ? 'quickRemove' : 'quickAdd', {
                                         time: formatTime(quickMinutes, tTime),
                                     })}
                                     size='small'
@@ -300,7 +336,7 @@ export const ProgressUpdater = ({
                                 minutes: totalTime % 60,
                             })}
                         </DialogContentText>
-                        {addedTime > TIME_WARNING_THRESHOLD_MINS && (
+                        {enteredTime > TIME_WARNING_THRESHOLD_MINS && (
                             <Alert severity='warning' variant='filled'>
                                 {t('largeTimeWarning')}
                             </Alert>
