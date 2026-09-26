@@ -13,7 +13,6 @@ import GameNewsfeedItem from '../../app/[locale]/(scoreboard)/newsfeed/(detail)/
 import GraduationNewsfeedItem from '../../app/[locale]/(scoreboard)/newsfeed/(detail)/[owner]/[id]/GraduationNewsfeedItem';
 import CommentList from '../comments/CommentList';
 import { Link } from '../navigation/Link';
-import { CONTENT_MAX_WIDTH } from './layout';
 import { useEntryDateTime } from './NewsfeedItemHeader';
 import ReactionList from './ReactionList';
 
@@ -122,9 +121,7 @@ export function CompactNewsfeedItem({
                         onEdit={onEdit}
                     />
                     {commentBox ? (
-                        <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: CONTENT_MAX_WIDTH - 40 }}>
-                            {commentBox}
-                        </Box>
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>{commentBox}</Box>
                     ) : (
                         <Button
                             href={link}
@@ -139,7 +136,7 @@ export function CompactNewsfeedItem({
                             {entry.comments?.length ? entry.comments.length : t('comment')}
                         </Button>
                     )}
-                    <Box sx={{ flexGrow: 1 }} />
+                    {!commentBox && <Box sx={{ flexGrow: 1 }} />}
                     {onChangeActivity && entry.owner === user?.username && (
                         <Tooltip title={t('editActivity')}>
                             <IconButton
@@ -222,42 +219,53 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
     const color = CategoryColors[entry.requirementCategory] ?? undefined;
     const unit = entry.progressBarSuffix?.toLowerCase() ?? '';
 
-    return (
-        // Kept to the game card's width, so bars don't stretch across wide columns.
-        <Stack spacing={0.75} sx={{ maxWidth: CONTENT_MAX_WIDTH }}>
-            {entry.requirementCategory && (
-                <TaskLine category={entry.requirementCategory} name={entry.requirementName} />
-            )}
+    const showBar = hasBar && total > 0;
 
-            {hasBar && total > 0 && (
-                <Stack direction='row' sx={{ alignItems: 'center', gap: 1 }}>
-                    <LinearProgress
-                        variant='determinate'
-                        value={percent}
-                        sx={{
-                            flexGrow: 1,
-                            height: 6,
-                            borderRadius: 3,
-                            backgroundColor: 'action.hover',
-                            '& .MuiLinearProgress-bar': { borderRadius: 3, backgroundColor: color },
-                        }}
-                    />
-                    <Typography
-                        variant='caption'
-                        sx={{
-                            fontWeight: 600,
-                            fontVariantNumeric: 'tabular-nums',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        {isTime
-                            ? `${formatTime(current, tCommon)} / ${formatTime(total, tCommon)}`
-                            : `${current} / ${total}`}
-                        <Box component='span' sx={{ color: 'text.secondary', fontWeight: 400 }}>
-                            {` · ${percentLabel(percent)}`}
-                        </Box>
-                    </Typography>
-                </Stack>
+    return (
+        <Stack spacing={1}>
+            <Stack
+                direction='row'
+                sx={{ alignItems: 'flex-end', justifyContent: 'space-between', gap: 2 }}
+            >
+                {entry.requirementCategory && (
+                    <TaskLine category={entry.requirementCategory} name={entry.requirementName} />
+                )}
+                {showBar && (
+                    <Stack sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
+                        <Typography
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: '1rem',
+                                lineHeight: 1.35,
+                                fontVariantNumeric: 'tabular-nums',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {isTime
+                                ? `${formatTime(current, tCommon)} / ${formatTime(total, tCommon)}`
+                                : `${current} / ${total}`}
+                        </Typography>
+                        <Typography
+                            variant='caption'
+                            sx={{ color: 'text.secondary', lineHeight: 1.2, order: -1 }}
+                        >
+                            {percentLabel(percent)}
+                        </Typography>
+                    </Stack>
+                )}
+            </Stack>
+
+            {showBar && (
+                <LinearProgress
+                    variant='determinate'
+                    value={percent}
+                    sx={{
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: 'action.hover',
+                        '& .MuiLinearProgress-bar': { borderRadius: 4, backgroundColor: color },
+                    }}
+                />
             )}
 
             <Stack
