@@ -1490,7 +1490,8 @@
             "players": "[T] Players:",
             "date": "[T] Date:",
             "result": "[T] Result:",
-            "moves": "[T] Moves:"
+            "moves": "[T] Moves:",
+            "moveCount": "[T] {count, plural, one {# move} other {# moves}}"
         },
         "graduation": {
             "graduated": "[T] Graduated from <strong>{oldCohort}</strong> into <strong>{newCohort}</strong>",

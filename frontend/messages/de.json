@@ -1490,7 +1490,8 @@
             "players": "Spieler:",
             "date": "Datum:",
             "result": "Ergebnis:",
-            "moves": "Züge:"
+            "moves": "Züge:",
+            "moveCount": "{count, plural, one {# Zug} other {# Züge}}"
         },
         "graduation": {
             "graduated": "Von <strong>{oldCohort}</strong> zu <strong>{newCohort}</strong> hochgestuft",

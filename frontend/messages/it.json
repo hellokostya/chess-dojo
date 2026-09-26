@@ -1490,7 +1490,8 @@
             "players": "Giocatori:",
             "date": "Data:",
             "result": "Risultato:",
-            "moves": "Mosse:"
+            "moves": "Mosse:",
+            "moveCount": "{count, plural, one {# mossa} other {# mosse}}"
         },
         "graduation": {
             "graduated": "Passato da <strong>{oldCohort}</strong> a <strong>{newCohort}</strong>",

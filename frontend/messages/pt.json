@@ -1490,7 +1490,8 @@
             "players": "Jogadores:",
             "date": "Data:",
             "result": "Resultado:",
-            "moves": "Lances:"
+            "moves": "Lances:",
+            "moveCount": "{count, plural, one {# lance} other {# lances}}"
         },
         "graduation": {
             "graduated": "Graduou-se de <strong>{oldCohort}</strong> para <strong>{newCohort}</strong>",
