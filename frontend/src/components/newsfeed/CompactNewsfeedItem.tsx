@@ -259,7 +259,9 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
                                 color: delta > 0 ? 'success.main' : 'warning.main',
                             }}
                         >
-                            {`${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${unit}`.trim()}
+                            {`${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${
+                                Math.abs(delta) === 1 ? singularUnit(unit) : unit
+                            }`.trim()}
                         </Typography>
                     )
                 )}
@@ -283,4 +285,21 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
             )}
         </Stack>
     );
+}
+
+/**
+ * The singular of a task's unit, which the task data gives in the plural:
+ * "games" becomes "game", "studies" becomes "study", "matches" becomes "match".
+ */
+export function singularUnit(unit: string): string {
+    if (/ies$/i.test(unit)) {
+        return unit.replace(/ies$/i, 'y');
+    }
+    if (/(ches|shes|sses|xes)$/i.test(unit)) {
+        return unit.slice(0, -2);
+    }
+    if (/[^s]s$/i.test(unit)) {
+        return unit.slice(0, -1);
+    }
+    return unit;
 }
