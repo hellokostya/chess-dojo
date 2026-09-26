@@ -334,9 +334,9 @@
                 "totalTime": "Tempo total: {hours}h {minutes}m",
                 "largeTimeWarning": "Você está adicionando muito tempo! Confira bem os dados antes de salvar.",
                 "quickAdd": "+{time}",
-                "quickRemove": "−{time}",
-                "addTime": "Adicionar",
-                "removeTime": "Remover"
+                "addTime": "Adicionar 5 minutos",
+                "removeTime": "Remover 5 minutos",
+                "removingTime": "Removendo tempo"
             },
             "scheduleGame": {
                 "title": "Agende sua próxima partida clássica",

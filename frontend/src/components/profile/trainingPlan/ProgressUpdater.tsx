@@ -25,10 +25,9 @@ import {
     DialogContentText,
     FormControlLabel,
     Grid,
+    IconButton,
     Stack,
     TextField,
-    ToggleButton,
-    ToggleButtonGroup,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers-pro';
 import { DateTime } from 'luxon';
@@ -38,6 +37,8 @@ import { InputSlider } from './InputSlider';
 import { TaskDialogView } from './TaskDialog';
 
 const NUMBER_REGEX = /^[0-9]*$/;
+/** How much the −/+ buttons change the time by, in minutes. */
+const TIME_STEP_MINUTES = 5;
 const TIME_WARNING_THRESHOLD_MINS = 60 * 5;
 /** The increments offered by the quick-add chips, in minutes. */
 const QUICK_ADD_MINUTES = [15, 30, 60];
@@ -116,11 +117,16 @@ export const ProgressUpdater = ({
     const addedTime = subtract ? -Math.min(enteredTime, previousTime) : enteredTime;
     const totalTime = previousTime + addedTime;
 
-    /** Adds the given number of minutes to the hours/minutes fields. */
-    const onQuickAdd = (addedMinutes: number) => {
-        const total = 60 * hoursInt + minutesInt + addedMinutes;
-        const newHours = Math.floor(total / 60);
-        const newMinutes = total % 60;
+    /**
+     * Changes the time being logged by the given number of minutes. Going below zero
+     * removes time from the task instead, down to what has already been logged.
+     */
+    const onQuickAdd = (change: number) => {
+        const signed = Math.max(addedTime + change, -previousTime);
+        const magnitude = Math.abs(signed);
+        const newHours = Math.floor(magnitude / 60);
+        const newMinutes = magnitude % 60;
+        setSubtract(signed < 0);
         setHours(newHours ? `${newHours}` : '');
         setMinutes(newMinutes ? `${newMinutes}` : '');
         setErrors({});
@@ -236,36 +242,29 @@ export const ProgressUpdater = ({
                                 alignItems: 'center',
                             }}
                         >
-                            <ToggleButtonGroup
+                            <IconButton
                                 size='small'
-                                exclusive
-                                value={subtract ? 'remove' : 'add'}
-                                onChange={(_, v: string | null) => v && setSubtract(v === 'remove')}
-                                sx={{ mr: 0.5 }}
-                                data-testid='task-updater-time-direction'
+                                aria-label={t('removeTime')}
+                                disabled={addedTime <= -previousTime}
+                                onClick={() => onQuickAdd(-TIME_STEP_MINUTES)}
+                                sx={{ border: 1, borderColor: 'divider' }}
+                                data-testid='task-updater-remove-time'
                             >
-                                <ToggleButton
-                                    value='add'
-                                    aria-label={t('addTime')}
-                                    sx={{ px: 1.25, py: 0.25, textTransform: 'none' }}
-                                >
-                                    <Add fontSize='small' sx={{ mr: 0.5 }} />
-                                    {t('addTime')}
-                                </ToggleButton>
-                                <ToggleButton
-                                    value='remove'
-                                    aria-label={t('removeTime')}
-                                    sx={{ px: 1.25, py: 0.25, textTransform: 'none' }}
-                                    data-testid='task-updater-remove-time'
-                                >
-                                    <Remove fontSize='small' sx={{ mr: 0.5 }} />
-                                    {t('removeTime')}
-                                </ToggleButton>
-                            </ToggleButtonGroup>
+                                <Remove fontSize='small' />
+                            </IconButton>
+                            <IconButton
+                                size='small'
+                                aria-label={t('addTime')}
+                                onClick={() => onQuickAdd(TIME_STEP_MINUTES)}
+                                sx={{ border: 1, borderColor: 'divider', mr: 0.5 }}
+                                data-testid='task-updater-add-time'
+                            >
+                                <Add fontSize='small' />
+                            </IconButton>
                             {QUICK_ADD_MINUTES.map((quickMinutes) => (
                                 <Chip
                                     key={quickMinutes}
-                                    label={t(subtract ? 'quickRemove' : 'quickAdd', {
+                                    label={t('quickAdd', {
                                         time: formatTime(quickMinutes, tTime),
                                     })}
                                     size='small'
@@ -325,7 +324,9 @@ export const ProgressUpdater = ({
                                     }}
                                     onChange={(event) => setMinutes(event.target.value)}
                                     error={!!errors.minutes}
-                                    helperText={errors.minutes}
+                                    helperText={
+                                        errors.minutes || (subtract ? t('removingTime') : undefined)
+                                    }
                                     fullWidth
                                 />
                             </Grid>
