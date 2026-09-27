@@ -186,6 +186,7 @@
                 "today": "Hoje",
                 "summary": "{done} de {total} tarefas feitas · {worked} de {goal}",
                 "allDone": "Concluído por hoje · {worked} registrados",
+                "goalMet": "Meta de tempo atingida",
                 "skippedHeading": "Puladas nesta semana ({count})",
                 "restore": "Restaurar {name}",
                 "skippedToast": "{name} pulada pelo resto da semana",

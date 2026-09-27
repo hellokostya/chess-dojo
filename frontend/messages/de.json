@@ -186,6 +186,7 @@
                 "today": "Heute",
                 "summary": "{done} von {total} Aufgaben erledigt · {worked} von {goal}",
                 "allDone": "Fertig für heute · {worked} eingetragen",
+                "goalMet": "Zeitziel erreicht",
                 "skippedHeading": "Diese Woche übersprungen ({count})",
                 "restore": "{name} wiederherstellen",
                 "skippedToast": "{name} für den Rest der Woche übersprungen",

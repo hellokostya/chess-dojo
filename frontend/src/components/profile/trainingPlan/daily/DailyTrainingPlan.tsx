@@ -178,7 +178,7 @@ export function DailyTrainingPlan() {
  * Renders the summary of today's plan: how many tasks are done, how much of the
  * day's suggested time has been worked, and a clear finished state.
  */
-function DailySummary({
+export function DailySummary({
     taskCount,
     doneCount,
     goalMinutes,
@@ -192,6 +192,9 @@ function DailySummary({
     const t = useTranslations('profile.trainingPlan.daily');
     const tTime = useTranslations('common');
     const allDone = doneCount >= taskCount;
+    // The day's suggested time is logged, even if some tasks are left.
+    const goalMet = goalMinutes > 0 && workedMinutes >= goalMinutes;
+    const complete = allDone || goalMet;
     const percent = goalMinutes > 0 ? Math.min(100, (100 * workedMinutes) / goalMinutes) : 0;
 
     return (
@@ -211,11 +214,28 @@ function DailySummary({
                               goal: formatTime(goalMinutes, tTime),
                           })}
                 </Typography>
+                {!allDone && goalMet && (
+                    <Typography
+                        variant='body2'
+                        sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.25,
+                            fontWeight: 600,
+                            color: 'success.main',
+                            ml: 'auto',
+                        }}
+                        data-testid='daily-goal-met'
+                    >
+                        <Check sx={{ fontSize: '1rem' }} />
+                        {t('goalMet')}
+                    </Typography>
+                )}
             </Stack>
             <LinearProgress
                 variant='determinate'
-                value={allDone ? 100 : percent}
-                color={allDone ? 'success' : 'primary'}
+                value={complete ? 100 : percent}
+                color={complete ? 'success' : 'primary'}
                 sx={{ height: 8, borderRadius: 4, backgroundColor: 'action.hover' }}
             />
         </Stack>

@@ -186,6 +186,7 @@
                 "today": "Today",
                 "summary": "{done} of {total} tasks done · {worked} of {goal}",
                 "allDone": "Done for today · {worked} logged",
+                "goalMet": "Time goal met",
                 "skippedHeading": "Skipped this week ({count})",
                 "restore": "Restore {name}",
                 "skippedToast": "Skipped {name} for the rest of the week",
