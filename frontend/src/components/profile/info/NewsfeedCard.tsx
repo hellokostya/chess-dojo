@@ -94,6 +94,7 @@ export function NewsfeedCard() {
                                         entry={entry}
                                         onEdit={onEdit}
                                         maxComments={MAX_COMMENTS}
+                                        simple
                                     />
                                 </CardContent>
                             </Card>

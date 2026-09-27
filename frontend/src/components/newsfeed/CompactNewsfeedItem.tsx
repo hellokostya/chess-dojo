@@ -67,12 +67,19 @@ export function CompactNewsfeedItem({
     maxComments,
     onChangeActivity,
     commentBox,
+    simple,
 }: {
     entry: TimelineEntry;
     onEdit: (entry: TimelineEntry) => void;
     maxComments?: number;
     /** A box to comment in, shown beside the reactions in place of the link to comment. */
     commentBox?: React.ReactNode;
+    /**
+     * The pared-down entry for narrow spaces like the profile sidebar: the task on
+     * one line, its bar and count, and what changed, without the category label,
+     * percentage or points.
+     */
+    simple?: boolean;
     /** When given, the owner of the entry gets a button to edit it. */
     onChangeActivity?: (entry: TimelineEntry) => void;
 }) {
@@ -105,7 +112,7 @@ export function CompactNewsfeedItem({
                 ) : isGame ? (
                     <GameNewsfeedItem entry={entry} />
                 ) : (
-                    <ProgressBody entry={entry} />
+                    <ProgressBody entry={entry} simple={simple} />
                 )}
 
                 <Stack
@@ -196,7 +203,7 @@ export function TaskLine({ category, name }: { category: RequirementCategory; na
  * What the entry did to its task: the task, a bar showing where it now stands,
  * the change this entry made ("+5 exercises" or "Completed"), and the time logged.
  */
-function ProgressBody({ entry }: { entry: TimelineEntry }) {
+function ProgressBody({ entry, simple }: { entry: TimelineEntry; simple?: boolean }) {
     const t = useTranslations('newsfeed');
     const tCommon = useTranslations('common');
     const { requirement } = useRequirement(entry.requirementId);
@@ -220,6 +227,109 @@ function ProgressBody({ entry }: { entry: TimelineEntry }) {
     const unit = entry.progressBarSuffix?.toLowerCase() ?? '';
 
     const showBar = hasBar && total > 0;
+    const countText = isTime
+        ? `${formatTime(current, tCommon)} / ${formatTime(total, tCommon)}`
+        : `${current} / ${total}`;
+
+    const changes = (
+        <>
+            {isComplete ? (
+                <Typography
+                    variant='caption'
+                    sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.25,
+                        fontWeight: 600,
+                        color: 'success.main',
+                    }}
+                >
+                    <Check sx={{ fontSize: '0.9rem' }} />
+                    {t('completed')}
+                </Typography>
+            ) : (
+                delta !== 0 && (
+                    <Typography
+                        variant='caption'
+                        sx={{ fontWeight: 600, color: delta > 0 ? 'success.main' : 'warning.main' }}
+                    >
+                        {`${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${
+                            Math.abs(delta) === 1 ? singularUnit(unit) : unit
+                        }`.trim()}
+                    </Typography>
+                )
+            )}
+            {entry.minutesSpent !== 0 && (
+                <Typography variant='caption' sx={{ color: 'text.secondary' }}>
+                    {`${entry.minutesSpent > 0 ? '+' : '−'}${formatTime(
+                        Math.abs(entry.minutesSpent),
+                        tCommon,
+                    )}`}
+                </Typography>
+            )}
+        </>
+    );
+
+    if (simple) {
+        return (
+            <Stack spacing={0.75}>
+                {entry.requirementCategory && (
+                    <Stack direction='row' sx={{ alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                        <TrainingPlanIcon
+                            category={entry.requirementCategory}
+                            sx={{ fontSize: '1.1rem', color }}
+                        />
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', lineHeight: 1.3 }}>
+                            {entry.requirementName}
+                        </Typography>
+                    </Stack>
+                )}
+                {showBar && (
+                    <Stack direction='row' sx={{ alignItems: 'center', gap: 1 }}>
+                        <LinearProgress
+                            variant='determinate'
+                            value={percent}
+                            sx={{
+                                flexGrow: 1,
+                                height: 6,
+                                borderRadius: 3,
+                                backgroundColor: 'action.hover',
+                                '& .MuiLinearProgress-bar': {
+                                    borderRadius: 3,
+                                    backgroundColor: color,
+                                },
+                            }}
+                        />
+                        <Typography
+                            variant='caption'
+                            sx={{
+                                fontWeight: 600,
+                                fontVariantNumeric: 'tabular-nums',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {countText}
+                        </Typography>
+                    </Stack>
+                )}
+                <Stack
+                    direction='row'
+                    sx={{ alignItems: 'center', columnGap: 1, flexWrap: 'wrap' }}
+                    data-testid='entry-deltas'
+                >
+                    {changes}
+                </Stack>
+                {entry.notes && (
+                    <Typography
+                        variant='body2'
+                        sx={{ whiteSpace: 'pre-line', color: 'text.secondary' }}
+                    >
+                        {entry.notes}
+                    </Typography>
+                )}
+            </Stack>
+        );
+    }
 
     return (
         <Stack spacing={1}>
