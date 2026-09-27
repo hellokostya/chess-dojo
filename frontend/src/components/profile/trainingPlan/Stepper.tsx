@@ -20,6 +20,7 @@ export function Stepper({
     decrementLabel,
     incrementLabel,
     warning,
+    width = STEPPER_WIDTH,
     'data-testid': dataTestId,
 }: {
     value: string;
@@ -35,6 +36,7 @@ export function Stepper({
     incrementLabel: string;
     /** Shows the number in the warning colour, e.g. when removing time. */
     warning?: boolean;
+    width?: number | string;
     'data-testid'?: string;
 }) {
     const buttonSx = { width: 40, height: 40, borderRadius: 0, flexShrink: 0 };
@@ -43,11 +45,11 @@ export function Stepper({
             sx={{
                 display: 'flex',
                 alignItems: 'center',
-                width: STEPPER_WIDTH,
+                width,
                 height: 40,
                 border: 1,
                 borderColor: 'divider',
-                borderRadius: 2,
+                borderRadius: 1.5,
                 overflow: 'hidden',
                 '&:focus-within': { borderColor: 'primary.main' },
             }}

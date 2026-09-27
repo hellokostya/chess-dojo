@@ -1,9 +1,18 @@
 import { Typography } from '@mui/material';
 
-/** A form row's label, in the dialog's heading style. */
+/** A form section's label: small, semibold capitals. */
 export function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
-        <Typography className='section-label' sx={{ fontSize: '1rem', fontWeight: 600 }}>
+        <Typography
+            variant='caption'
+            className='section-label'
+            sx={{
+                color: 'text.secondary',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+            }}
+        >
             {children}
         </Typography>
     );

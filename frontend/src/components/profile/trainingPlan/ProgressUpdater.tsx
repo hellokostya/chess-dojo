@@ -21,10 +21,12 @@ import {
     Checkbox,
     DialogActions,
     DialogContent,
-    Divider,
     FormControlLabel,
+    Link,
     Stack,
     TextField,
+    ToggleButton,
+    ToggleButtonGroup,
     Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers-pro';
@@ -32,7 +34,7 @@ import { DateTime } from 'luxon';
 import { useTranslations } from 'next-intl';
 import { use, useState } from 'react';
 import { SectionLabel } from './SectionLabel';
-import { Stepper, STEPPER_WIDTH } from './Stepper';
+import { Stepper } from './Stepper';
 import { TaskDialogView } from './TaskDialog';
 
 const NUMBER_REGEX = /^[0-9]*$/;
@@ -208,17 +210,10 @@ export const ProgressUpdater = ({
 
     return (
         <>
-            <DialogContent
-                sx={{
-                    // Two text styles only: labels are 1rem semibold (SectionLabel),
-                    // everything else is this.
-                    '& .MuiInputBase-root, & .MuiInputLabel-root, & .MuiButton-root, & .MuiTypography-root:not(.section-label)':
-                        { fontSize: '1rem', fontWeight: 400 },
-                }}
-            >
-                <Stack spacing={3} sx={{ pt: 1 }}>
+            <DialogContent sx={{ pt: '4px !important' }}>
+                <Stack spacing={2.5}>
                     {isSlider && (
-                        <FormRow label={requirement.progressBarSuffix || tSlider('progressCount')}>
+                        <Section label={requirement.progressBarSuffix || tSlider('progressCount')}>
                             <Stepper
                                 value={`${value}`}
                                 onChange={(text) =>
@@ -234,9 +229,10 @@ export const ProgressUpdater = ({
                                 label={requirement.progressBarSuffix || tSlider('count')}
                                 decrementLabel={tSlider('decrement')}
                                 incrementLabel={tSlider('increment')}
+                                width='100%'
                                 data-testid='task-updater-count'
                             />
-                        </FormRow>
+                        </Section>
                     )}
 
                     {isCheckbox && (
@@ -251,9 +247,9 @@ export const ProgressUpdater = ({
                         />
                     )}
 
-                    <FormRow
+                    <Section
                         label={t('timeSpent')}
-                        caption={
+                        aside={
                             <Box
                                 component='span'
                                 sx={{ color: subtract ? 'warning.main' : undefined }}
@@ -266,7 +262,7 @@ export const ProgressUpdater = ({
                             </Box>
                         }
                     >
-                        <Stack spacing={1.5} sx={{ width: STEPPER_WIDTH }}>
+                        <Stack spacing={1}>
                             <Stepper
                                 value={subtract ? `-${enteredTime}` : `${enteredTime}`}
                                 onChange={(text) => {
@@ -281,100 +277,106 @@ export const ProgressUpdater = ({
                                 decrementLabel={t('removeTime')}
                                 incrementLabel={t('addTime')}
                                 warning={subtract}
+                                width='100%'
                                 data-testid='task-updater-minutes'
                             />
-                            <Stack direction='row' sx={{ gap: 0.75 }}>
+                            <ToggleButtonGroup
+                                exclusive
+                                fullWidth
+                                size='small'
+                                value={addedTime}
+                                onChange={(_, minutes: number | null) =>
+                                    minutes !== null && onSetTime(minutes)
+                                }
+                                sx={{
+                                    '& .MuiToggleButton-root': {
+                                        textTransform: 'none',
+                                        py: 0.5,
+                                        color: 'text.secondary',
+                                        borderColor: 'divider',
+                                    },
+                                    '& .Mui-selected': { color: 'text.primary !important' },
+                                }}
+                            >
                                 {QUICK_ADD_MINUTES.map((quickMinutes) => (
-                                    <Button
+                                    <ToggleButton
                                         key={quickMinutes}
-                                        size='small'
-                                        variant='outlined'
-                                        color='inherit'
-                                        onClick={() => onSetTime(quickMinutes)}
-                                        sx={{
-                                            flex: 1,
-                                            minWidth: 0,
-                                            borderRadius: 2,
-                                            // The preset matching the time entered is outlined.
-                                            borderColor:
-                                                addedTime === quickMinutes
-                                                    ? 'text.primary'
-                                                    : 'divider',
-                                            color: 'text.primary',
-                                            textTransform: 'none',
-                                        }}
+                                        value={quickMinutes}
                                         data-testid={`task-updater-quick-add-${quickMinutes}`}
                                     >
                                         {formatTime(quickMinutes, tTime)}
-                                    </Button>
+                                    </ToggleButton>
                                 ))}
-                            </Stack>
+                            </ToggleButtonGroup>
                         </Stack>
-                    </FormRow>
+                    </Section>
 
                     {enteredTime > TIME_WARNING_THRESHOLD_MINS && (
                         <Alert severity='warning'>{t('largeTimeWarning')}</Alert>
                     )}
 
-                    <Divider />
+                    <Section label={tCommon('date')}>
+                        <DateTimePicker
+                            disableFuture
+                            value={date}
+                            onChange={setDate}
+                            slotProps={{
+                                textField: {
+                                    fullWidth: true,
+                                    size: 'small',
+                                    'aria-label': tCommon('date'),
+                                },
+                            }}
+                            ampm={useTwelveHourClock}
+                        />
+                    </Section>
 
-                    <DateTimePicker
-                        label={tCommon('date')}
-                        disableFuture
-                        value={date}
-                        onChange={setDate}
-                        slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-                        ampm={useTwelveHourClock}
-                    />
-
-                    <TextField
-                        label={tCommon('comments')}
-                        placeholder={tCommon('commentsPlaceholder')}
-                        multiline
-                        size='small'
-                        minRows={2}
-                        maxRows={4}
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                    />
+                    <Section label={tCommon('comments')}>
+                        <TextField
+                            placeholder={tCommon('commentsPlaceholder')}
+                            multiline
+                            size='small'
+                            minRows={2}
+                            maxRows={4}
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            slotProps={{ htmlInput: { 'aria-label': tCommon('comments') } }}
+                        />
+                    </Section>
                 </Stack>
             </DialogContent>
-            <DialogActions
-                sx={{
-                    flexWrap: 'wrap',
-                    px: 2,
-                    pb: 2,
-                    gap: 0.5,
-                    '& .MuiButton-root': { fontSize: '1rem', fontWeight: 400 },
-                }}
-            >
+            <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, gap: 1 }}>
                 {setView && (
-                    <>
-                        <Button
+                    <Typography variant='body2' sx={{ color: 'text.secondary', mr: 'auto' }}>
+                        <Link
+                            component='button'
+                            type='button'
                             color='inherit'
+                            underline='hover'
                             onClick={() => setView(TaskDialogView.Details)}
                             disabled={request.isLoading()}
-                            sx={{ color: 'text.primary', textTransform: 'none', px: 1 }}
                         >
                             {tCommon('taskDetails')}
-                        </Button>
-                        <Button
+                        </Link>
+                        {' · '}
+                        <Link
+                            component='button'
+                            type='button'
                             color='inherit'
-                            data-testid='task-updater-show-history-button'
+                            underline='hover'
                             onClick={() => setView(TaskDialogView.History)}
                             disabled={request.isLoading()}
-                            sx={{ color: 'text.primary', textTransform: 'none', px: 1 }}
+                            data-testid='task-updater-show-history-button'
                         >
                             {tCommon('showHistory')}
-                        </Button>
-                    </>
+                        </Link>
+                    </Typography>
                 )}
-                <Box sx={{ flexGrow: 1 }} />
                 <Button
                     color='inherit'
                     onClick={onClose}
                     disabled={request.isLoading()}
-                    sx={{ textTransform: 'none' }}
+                    sx={{ textTransform: 'none', ml: setView ? 0 : 'auto' }}
                 >
                     {tCommon('cancel')}
                 </Button>
@@ -384,13 +386,7 @@ export const ProgressUpdater = ({
                     data-testid='task-updater-save-button'
                     loading={request.isLoading()}
                     onClick={onSubmit}
-                    sx={{
-                        borderRadius: 999,
-                        px: 2.5,
-                        mr: 1,
-                        textTransform: 'none',
-                        fontWeight: '600 !important',
-                    }}
+                    sx={{ borderRadius: 1.5, px: 2.5, textTransform: 'none', fontWeight: 600 }}
                 >
                     {tCommon('update')}
                 </Button>
@@ -402,35 +398,31 @@ export const ProgressUpdater = ({
 };
 
 /**
- * One row of the form: a label (and optional caption) on the left, its control on
- * the right. Every row's control shares the right edge, and wraps under the
- * label on narrow screens.
+ * One section of the form: a small label (and, on its right, an optional aside such
+ * as a running total) above its control.
  */
-function FormRow({
+function Section({
     label,
-    caption,
+    aside,
     children,
 }: {
     label: string;
-    caption?: React.ReactNode;
+    aside?: React.ReactNode;
     children: React.ReactNode;
 }) {
     return (
-        <Stack
-            direction='row'
-            sx={{
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                flexWrap: 'wrap',
-                columnGap: 3,
-                rowGap: 1,
-            }}
-        >
-            <Stack spacing={0.25} sx={{ minHeight: 40, justifyContent: 'center' }}>
+        <Stack spacing={0.75}>
+            <Stack
+                direction='row'
+                sx={{ alignItems: 'baseline', justifyContent: 'space-between', gap: 2 }}
+            >
                 <SectionLabel>{label}</SectionLabel>
-                {caption && (
-                    <Typography sx={{ color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-                        {caption}
+                {aside && (
+                    <Typography
+                        variant='caption'
+                        sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}
+                    >
+                        {aside}
                     </Typography>
                 )}
             </Stack>
