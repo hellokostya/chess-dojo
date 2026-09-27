@@ -1,18 +1,23 @@
 """OTB (FIDE + US Chess) scrape/merge/stats library for the Lambda worker.
 
-Ports the battle-tested logic from the FIDE Scraper prototype:
-fide_monthly.py (FIDE scraping/parsing), uschess_api.py (MUIR client),
-plus the scraper orchestration, event fusion (merge.py) and stats math.
-Stdlib + requests + bs4 only. Progress reporting and persistence are
-injected by handler.py (DynamoDB + S3), so this module stays offline-testable.
+Builds on fide_monthly.py (FIDE profile + scraping/parsing) with scrape
+orchestration, FIDE/US Chess event fusion and stats math. Stdlib +
+requests + bs4 only. Progress reporting and persistence are injected by
+handler.py (DynamoDB + S3), so this module stays offline-testable.
 """
+import re as _re
 import time
 
 import fide_monthly as fm
-import uschess_api as api
+from otb_dates import to_year_month
 
 # ---------------------------------------------------------------- FIDE
-# (mirrors dojo_app/scraper.py)
+
+# FIDE throttles bursts, so failed periods get a cool-down, then up to
+# RETRY_ATTEMPTS retries with exponential backoff (4s, 8s, ...).
+RETRY_COOLDOWN_SECONDS = 15
+RETRY_ATTEMPTS = 2
+RETRY_BASE_DELAY_SECONDS = 4
 
 
 def new_session():
@@ -49,9 +54,9 @@ def fetch_combo(s, fide_id, period, rtype):
                 "report_url": t["report_url"],
                 "start": t["start"],
                 "end": t["end"],
-                "month": t["start"][:7] if t["start"] else "",
+                "month": to_year_month(t["start"]),
                 "rating_type": rtype_name,
-                "rating_period": period[:7],
+                "rating_period": to_year_month(period),
                 "score": sm["score"],
                 "games": sm["games"],
                 "rating_change": sm["rating_change"],
@@ -71,7 +76,6 @@ def scrape_player(fide_id, progress=None):
     """Scrape everything FIDE has for one player. progress(done,total,label)."""
     s = new_session()
     info = fm.profile_info(s, fide_id)
-    history = fm.chart_history(s, fide_id)
     combos = fm.calc_periods(s, fide_id)
 
     tournaments = []
@@ -92,16 +96,16 @@ def scrape_player(fide_id, progress=None):
     # Retry pass after a cool-down (shared/VPN exit IPs get throttled
     # mid-scrape; hammering straight into retries keeps failing).
     if failed:
-        time.sleep(15)
+        time.sleep(RETRY_COOLDOWN_SECONDS)
         retrying, failed = failed, []
         for period, rtype in retrying:
             rtype_name, _ = fm.RTYPES[rtype]
             got = None
-            for attempt, gap in enumerate((3, 8), 1):
+            for attempt in range(RETRY_ATTEMPTS):
                 if progress:
-                    tag = "retry" if attempt == 1 else "retry again"
+                    tag = "retry" if attempt == 0 else "retry again"
                     progress(total, total, f"{tag} {period} {rtype_name}")
-                time.sleep(gap)
+                time.sleep(RETRY_BASE_DELAY_SECONDS * 2**attempt)
                 try:
                     _, got = fetch_combo(s, fide_id, period, rtype)
                     break
@@ -116,68 +120,31 @@ def scrape_player(fide_id, progress=None):
     return {
         "fide_id": str(fide_id),
         "info": info,
-        "history": history,
         "tournaments": tournaments,
         "failed_periods": [
-            {"period": p[:7], "rating_type": fm.RTYPES[t][0]} for p, t in failed
+            {"period": to_year_month(p), "rating_type": fm.RTYPES[t][0]} for p, t in failed
         ],
     }
 
 
 # ---------------------------------------------------------------- USCF
-# (mirrors dojo_app/uschess.py; link + fetch + helpers)
 
 SYSTEM_ORDER = ["R", "Q", "B"]
 SYSTEM_NAMES = {"R": "Regular", "Q": "Quick", "B": "Blitz"}
-_MONTHS = [
-    "",
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-]
-
-
-def find_uscf_id(fide_id, name, link_get=None, link_put=None):
-    """Resolve a FIDE ID to a US Chess ID (link cache optional)."""
-    if link_get:
-        linked = link_get(fide_id)
-        if linked:
-            return linked
-    cands = api.search_players(name)
-    s = api.new_session()
-    for c in cands[:10]:
-        try:
-            info = api.member_info(s, c["uscf_id"])
-        except RuntimeError:
-            continue
-        if str(info.get("fide_id") or "") == str(fide_id):
-            if link_put:
-                link_put(fide_id, info["uscf_id"])
-            return info["uscf_id"]
-    return None
+_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 
 def short_month(month):
     """'2026-09' -> \"Sep '26\" for compact peak display."""
     try:
         year, mon = month.split("-")
-        return f"{_MONTHS[int(mon)]} '{year[2:]}"
+        return f"{_MONTHS[int(mon) - 1]} '{year[2:]}"
     except (ValueError, IndexError):
         return month or ""
 
 
 # ---------------------------------------------------------------- merge
-# (mirrors dojo_app/merge.py; stdlib only)
-import re as _re  # noqa: E402  (kept with merge port for clarity)
 
 MATCH_THRESHOLD = 0.35
 
@@ -336,7 +303,7 @@ def match_events(fide, uscf):
 
 
 # ---------------------------------------------------------------- stats
-# (performance math mirrors dojo_app/stats.py dp table)
+# FIDE performance-rating math (FIDE rating regulations dp conversion table).
 
 _DP_UPPER = [
     (1.00, 800), (0.99, 677), (0.98, 589), (0.97, 538), (0.96, 501),
@@ -372,7 +339,15 @@ def dp_for(pct):
 # ---------------------------------------------------------------- scheduler
 # (pure selection logic; AWS I/O lives in scheduler.py for testability)
 
-SCHEDULER_TTL_SECONDS = 30 * 86400
+SCHEDULER_TTL_SECONDS = 30 * 86400  # 30 days
+
+
+def player_key(fide_id, uscf_id):
+    """Cache key for a member's OTB data: their FIDE and/or US Chess ID.
+
+    Either ID may be missing; members often have only one of the two.
+    """
+    return f"fide:{fide_id or ''}|uscf:{uscf_id or ''}"
 
 
 def _cohort_floor(cohort):
@@ -384,25 +359,23 @@ def _cohort_floor(cohort):
 
 
 def select_batch(users, cache, limit, now, ttl=SCHEDULER_TTL_SECONDS):
-    """Pick up to `limit` FIDE IDs due for refresh, strongest first.
+    """Pick up to `limit` members due for refresh, strongest first.
 
-    users: [{fide_id, cohort}]. cache: {fide_id: updated_at}.
-    Never-scraped members go first (cohort rating descending — "from the
-    top"), then stale members oldest-first. Members without a FIDE ID or
-    with fresh cache are skipped.
+    users: [{fide_id, uscf_id, cohort}]. cache: {player_key: updated_at}.
+    Never-fetched members go first (cohort rating descending — "from the
+    top"), then stale members oldest-first. Members with neither a FIDE
+    nor a US Chess ID, or with a fresh cache, are skipped.
     """
     never, old = [], []
     for u in users:
-        fid = u.get("fide_id")
-        if not fid:
+        if not (u.get("fide_id") or u.get("uscf_id")):
             continue
-        ts = cache.get(str(fid))
+        ts = cache.get(player_key(u.get("fide_id"), u.get("uscf_id")))
         if ts is None:
             never.append(u)
         elif now - ts > ttl:
             old.append((ts, u))
     never.sort(key=lambda u: _cohort_floor(u.get("cohort")), reverse=True)
     old.sort(key=lambda item: item[0])
-    ordered = [str(u["fide_id"]) for u in never]
-    ordered += [str(u["fide_id"]) for _, u in old]
+    ordered = never + [u for _, u in old]
     return ordered[:limit]

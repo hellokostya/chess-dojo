@@ -32,7 +32,6 @@ provider:
       Resource:
         - !GetAtt OtbJobsTable.Arn
         - !GetAtt OtbCacheTable.Arn
-        - !GetAtt OtbLinksTable.Arn
     - Effect: Allow
       Action:
         - s3:GetObject
@@ -114,21 +113,10 @@ resources:
         TableName: ${sls:stage}-otb-cache
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
-          - AttributeName: fideId
+          - AttributeName: playerKey
             AttributeType: S
         KeySchema:
-          - AttributeName: fideId
-            KeyType: HASH
-    OtbLinksTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${sls:stage}-otb-links
-        BillingMode: PAY_PER_REQUEST
-        AttributeDefinitions:
-          - AttributeName: fideId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: fideId
+          - AttributeName: playerKey
             KeyType: HASH
     OtbPayloadsBucket:
       Type: AWS::S3::Bucket

@@ -1,12 +1,10 @@
-#!/usr/bin/env python3
-"""US Chess (MUIR) API client + payload builder for the Tournament Explorer.
+"""US Chess (MUIR) API client + payload builder for the OTB service.
 
 Data source: the official US Chess MUIR JSON API
     https://ratings-api.uschess.org/api/v1
 Public GET endpoints, no authentication required (verified 2026-09-21).
 
 Endpoints used:
-  GET /api/v1/members?Fuzzy={name}&Size={n}          name search
   GET /api/v1/members/{id}                            member detail
   GET /api/v1/members/{id}/sections?Size=1000&Offset= event-by-event history
   GET /api/v1/members/{id}/games?Size=1000&Offset=    per-game results
@@ -25,9 +23,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import requests
 
+from otb_dates import to_year_month
+
 BASE = "https://ratings-api.uschess.org/api/v1"
 HEADERS = {
-    "User-Agent": "ChessDojo-USChess-Explorer/1.0 (demo; contact via ChessDojo)",
+    "User-Agent": "ChessDojo-USChess-Explorer/1.0 (contact via ChessDojo)",
     "Accept": "application/json",
 }
 PAGE_SIZE = 500
@@ -89,29 +89,7 @@ def _paged(s, path, params=None, progress=None, label=""):
     return out
 
 
-# ------------------------------------------------------------- lookup
-
-def search_players(query):
-    """Resolve a name or US Chess ID query to candidate dicts."""
-    s = new_session()
-    q = query.strip()
-    if q.isdigit():
-        info = member_info(s, q)  # raises if unknown
-        return [{"uscf_id": info["uscf_id"], "name": info["name"],
-                 "state": info["state"], "ratings": info["ratings"]}]
-    data = polite_get(s, "/members", params={"Fuzzy": q, "Size": 25})
-    out = []
-    for m in data.get("items", []):
-        out.append({
-            "uscf_id": str(m.get("id")),
-            "name": f"{m.get('lastName', '')}, {m.get('firstName', '')}".strip(", "),
-            "state": m.get("stateRep", ""),
-            "status": m.get("status", ""),
-            "ratings": {r["ratingSystem"]: r.get("rating")
-                        for r in m.get("ratings", []) if r.get("rating")},
-        })
-    return out
-
+# ------------------------------------------------------------- member
 
 def member_info(s, uscf_id):
     """Member detail -> info dict (name, titles, ratings w/ floors, links)."""
@@ -206,7 +184,7 @@ def monthly_history(s, uscf_id, years_back=15):
     data = _paged(s, f"/members/{uscf_id}/rating-supplements")
     hist = []
     for snap in reversed(data):  # API returns newest first
-        row = {"month": (snap.get("ratingSupplementDate") or "")[:7]}
+        row = {"month": to_year_month(snap.get("ratingSupplementDate"))}
         for r in snap.get("ratings", []):
             if r.get("rating"):
                 row[r.get("source")] = r["rating"]
@@ -262,7 +240,7 @@ def fetch_player(uscf_id, progress=None):
             "format": sec.get("format", ""),
             "start": sec.get("startDate", ""),
             "end": sec.get("endDate", ""),
-            "month": (sec.get("startDate", "") or "")[:7],
+            "month": to_year_month(sec.get("startDate")),
             "systems": systems,                      # e.g. ["B"] or ["R","Q"] (dual)
             "system_label": "/".join(SYSTEM_LABELS.get(x, x) for x in systems),
             "games": sc.get("games", 0),
@@ -291,9 +269,3 @@ def fetch_player(uscf_id, progress=None):
         "tournaments": tournaments,
     }
 
-
-if __name__ == "__main__":
-    import json
-    q = sys.argv[1] if len(sys.argv) > 1 else "12742780"
-    cands = search_players(q)
-    print(json.dumps(cands[0], indent=1)[:600])

@@ -1,7 +1,7 @@
 """Nightly scheduler: keep every linked member's OTB cache warm, top-down.
 
 EventBridge cron wakes this up nightly. It scans the users table for
-members with a FIDE ID linked, selects up to BATCH_SIZE due members via
+members with a FIDE and/or US Chess ID on their profile, selects up to BATCH_SIZE due members via
 otb_lib.select_batch (never-scraped first by cohort strength, then
 stalest-first), and invokes the worker for each. Failures simply stay
 stale and are retried the next night. Manual refreshes (30-day cooldown
@@ -41,41 +41,50 @@ def _scan_all(table, **kwargs):
             return items
 
 
+def _rating_id(ratings, system):
+    """Numeric rating ID the member entered on their profile, or ''."""
+    value = str((ratings.get(system) or {}).get("username") or "").strip()
+    return value if value.isdigit() else ""
+
+
 def run(event, context):
-    """Scheduled entrypoint. Returns {scheduled: [fideIds]}."""
+    """Scheduled entrypoint. Returns {scheduled: [playerKeys]}."""
     users = []
     for u in _scan_all(
         _users,
         ProjectionExpression="username, ratings, dojoCohort",
     ):
         ratings = u.get("ratings") or {}
-        fide = ratings.get("FIDE") or {}
-        if fide.get("username"):
+        fide_id = _rating_id(ratings, "FIDE")
+        uscf_id = _rating_id(ratings, "USCF")
+        if fide_id or uscf_id:
             users.append(
                 {
                     "username": u.get("username", ""),
-                    "fide_id": str(fide["username"]).strip(),
+                    "fide_id": fide_id,
+                    "uscf_id": uscf_id,
                     "cohort": u.get("dojoCohort", ""),
                 }
             )
 
     cache_state = {}
     for row in _scan_all(
-        _cache, ProjectionExpression="fideId, updatedAt"
+        _cache, ProjectionExpression="playerKey, updatedAt"
     ):
         try:
-            cache_state[str(row["fideId"])] = int(row.get("updatedAt", 0))
+            cache_state[str(row["playerKey"])] = int(row.get("updatedAt", 0))
         except (ValueError, TypeError):
             continue
 
     batch = lib.select_batch(users, cache_state, BATCH_SIZE, int(time.time()))
     worker_fn = os.environ["WORKER_FUNCTION"]
-    for fide_id in batch:
+    for u in batch:
         job_id = uuid.uuid4().hex[:12]
         _jobs.put_item(
             Item={
                 "jobId": job_id,
-                "fideId": fide_id,
+                "fideId": u["fide_id"],
+                "uscfId": u["uscf_id"],
                 "status": "starting",
                 "done": 0,
                 "total": 0,
@@ -86,6 +95,9 @@ def run(event, context):
         _lambda.invoke(
             FunctionName=worker_fn,
             InvocationType="Event",
-            Payload=json.dumps({"jobId": job_id, "fideId": fide_id}),
+            Payload=json.dumps(
+                {"jobId": job_id, "fideId": u["fide_id"], "uscfId": u["uscf_id"]}
+            ),
         )
-    return {"statusCode": 200, "body": json.dumps({"scheduled": batch})}
+    scheduled = [lib.player_key(u["fide_id"], u["uscf_id"]) for u in batch]
+    return {"statusCode": 200, "body": json.dumps({"scheduled": scheduled})}

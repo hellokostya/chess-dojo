@@ -1,13 +1,4 @@
-import axios from 'axios';
 import { axiosService } from '../axiosService';
-
-/**
- * Local-dev escape hatch: set NEXT_PUBLIC_OTB_BASE_URL=http://localhost:5002
- * to talk to backend/otbService/local_shim.py instead of the deployed
- * service (which also skips the JWT, so no login is needed for OTB calls).
- */
-const OTB_BASE_URL = process.env.NEXT_PUBLIC_OTB_BASE_URL || '';
-const otbHttp = OTB_BASE_URL ? axios.create({ baseURL: OTB_BASE_URL }) : axiosService;
 
 /**
  * Client for the OTB (FIDE + US Chess) history service (backend/otbService).
@@ -75,15 +66,21 @@ export interface OtbPayload {
     uschess_error?: string | null;
 }
 
-export function startOtbJob(fideId: string) {
-    return otbHttp.post<{ jobId: string; cached: boolean }>(`/otb/jobs`, {
-        fideId,
+/** The member's OTB rating IDs from their profile; at least one is required. */
+export interface OtbPlayerIds {
+    fideId?: string;
+    uscfId?: string;
+}
+
+export function startOtbJob(ids: OtbPlayerIds) {
+    return axiosService.post<{ jobId: string; cached: boolean }>(`/otb/jobs`, {
+        ...ids,
         functionName: 'startOtbJob',
     });
 }
 
 export function getOtbJob(jobId: string) {
-    return otbHttp.get<OtbJob>(`/otb/jobs/${jobId}`, {
+    return axiosService.get<OtbJob>(`/otb/jobs/${jobId}`, {
         functionName: 'getOtbJob',
     });
 }
@@ -98,13 +95,13 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 /** Starts a job and polls until done, then returns the payload. */
 export async function pollOtbPayload(
-    fideId: string,
+    ids: OtbPlayerIds,
     onProgress?: (job: OtbJob) => void,
     signal?: AbortSignal,
 ): Promise<OtbPayload> {
     const {
         data: { jobId },
-    } = await startOtbJob(fideId);
+    } = await startOtbJob(ids);
     for (;;) {
         if (signal?.aborted) {
             throw new Error('OTB fetch aborted');

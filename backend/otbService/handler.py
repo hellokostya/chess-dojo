@@ -1,14 +1,15 @@
 """HTTP + worker handlers for the OTB (FIDE + US Chess) service.
 
 Endpoints (JWT-protected, attached to the shared httpApi):
-  POST /otb/jobs  {fideId} -> {jobId} (+ cached:true on a fresh cache hit)
+  POST /otb/jobs  {fideId?, uscfId?} -> {jobId} (+ cached:true on a fresh
+                   cache hit). At least one ID is required; they come from the
+                   member's profile ratings.
   GET  /otb/jobs/{jobId}   -> {status, done, total, label, error?, url?}
        url is a presigned S3 GET for the finished payload (1h expiry).
 
-The worker runs the full scrape (FIDE polite scrape + USCF fetch) with a
+The worker runs the full fetch (FIDE polite scrape and/or USCF API) with a
 900s timeout, writes the gzipped payload to S3 and upserts the cache index.
-A throttled partial never overwrites a fuller cache (same guard as the
-Flask prototype).
+A throttled partial never overwrites a fuller cache.
 """
 import gzip
 import json
@@ -21,8 +22,8 @@ import boto3
 import otb_lib as lib
 
 REGION = "us-east-1"
-CACHE_TTL_SECONDS = 30 * 86400
-URL_EXPIRY_SECONDS = 3600
+CACHE_TTL_SECONDS = 30 * 86400  # 30 days
+URL_EXPIRY_SECONDS = 3600  # 1 hour
 
 _stage = os.environ.get("stage", "dev")
 _jobs_table = boto3.resource("dynamodb", region_name=REGION).Table(
@@ -30,9 +31,6 @@ _jobs_table = boto3.resource("dynamodb", region_name=REGION).Table(
 )
 _cache_table = boto3.resource("dynamodb", region_name=REGION).Table(
     f"{_stage}-otb-cache"
-)
-_links_table = boto3.resource("dynamodb", region_name=REGION).Table(
-    f"{_stage}-otb-links"
 )
 _bucket = f"{_stage}-otb-payloads"
 _s3 = boto3.client("s3", region_name=REGION)
@@ -47,36 +45,37 @@ def _now():
     return int(time.time())
 
 
-def link_get(fide_id):
-    row = _links_table.get_item(Key={"fideId": str(fide_id)}).get("Item")
-    return row["uscfId"] if row else None
-
-
-def link_put(fide_id, uscf_id):
-    _links_table.put_item(
-        Item={"fideId": str(fide_id), "uscfId": str(uscf_id)}
-    )
+def _parse_id(body, field):
+    """Optional numeric ID from the request body. None if invalid."""
+    value = str(body.get(field) or "").strip()
+    if value and not value.isdigit():
+        return None
+    return value
 
 
 def start_job(event, context):
-    """POST /otb/jobs — start (or reuse) a scrape for one FIDE ID."""
+    """POST /otb/jobs — start (or reuse) a fetch for a FIDE and/or USCF ID."""
     try:
         body = json.loads(event.get("body") or "{}")
     except (TypeError, ValueError):
         return _resp(400, {"publicMessage": "Invalid request: JSON body required"})
-    fide_id = str(body.get("fideId") or "").strip()
-    if not fide_id.isdigit():
+    fide_id = _parse_id(body, "fideId")
+    uscf_id = _parse_id(body, "uscfId")
+    if fide_id is None or uscf_id is None or not (fide_id or uscf_id):
         return _resp(
-            400, {"publicMessage": "Invalid request: numeric fideId required"}
+            400,
+            {"publicMessage": "Invalid request: numeric fideId or uscfId required"},
         )
 
-    cached = _cache_table.get_item(Key={"fideId": fide_id}).get("Item")
+    key = lib.player_key(fide_id, uscf_id)
+    cached = _cache_table.get_item(Key={"playerKey": key}).get("Item")
     if cached and _now() - int(cached.get("updatedAt", 0)) < CACHE_TTL_SECONDS:
         job_id = uuid.uuid4().hex[:12]
         _jobs_table.put_item(
             Item={
                 "jobId": job_id,
                 "fideId": fide_id,
+                "uscfId": uscf_id,
                 "status": "done",
                 "done": 1,
                 "total": 1,
@@ -92,6 +91,7 @@ def start_job(event, context):
         Item={
             "jobId": job_id,
             "fideId": fide_id,
+            "uscfId": uscf_id,
             "status": "starting",
             "done": 0,
             "total": 0,
@@ -103,7 +103,7 @@ def start_job(event, context):
     _lambda.invoke(
         FunctionName=worker_fn,
         InvocationType="Event",
-        Payload=json.dumps({"jobId": job_id, "fideId": fide_id}),
+        Payload=json.dumps({"jobId": job_id, "fideId": fide_id, "uscfId": uscf_id}),
     )
     return _resp(200, {"jobId": job_id, "cached": False})
 
@@ -162,8 +162,8 @@ def _get_object(key):
         return json.loads(raw.decode("utf-8"))
 
 
-def _put_payload(fide_id, payload):
-    key = f"players/{fide_id}/{_now()}.json.gz"
+def _put_payload(fide_id, uscf_id, payload):
+    key = f"players/fide-{fide_id or 'none'}_uscf-{uscf_id or 'none'}/{_now()}.json.gz"
     _s3.put_object(
         Bucket=_bucket,
         Key=key,
@@ -175,88 +175,49 @@ def _put_payload(fide_id, payload):
 
 
 def worker(event, context):
-    """Async scrape: FIDE polite scrape, then USCF leg, then cache + done."""
+    """Async fetch: FIDE polite scrape, then USCF leg, then cache + done."""
     job_id = event["jobId"]
-    fide_id = str(event["fideId"])
+    fide_id = str(event.get("fideId") or "")
+    uscf_id = str(event.get("uscfId") or "")
+    key = lib.player_key(fide_id, uscf_id)
     progress = _progress(job_id)
     try:
-        payload = lib.scrape_player(fide_id, progress=progress)
-        if not payload["tournaments"] and not payload["info"]["name"]:
-            raise RuntimeError("No FIDE player found with that ID.")
-        failed = payload.get("failed_periods") or []
-        old_index = _cache_table.get_item(Key={"fideId": fide_id}).get("Item")
-        old_rounds = {}
-        if failed and old_index and int(old_index.get("tournaments", 0)) > len(
-            payload["tournaments"]
-        ):
-            names = ", ".join(
-                f"{f['period']} {f['rating_type']}" for f in failed[:8]
-            )
-            if len(failed) > 8:
-                names += ", …"
-            raise RuntimeError(
-                f"{len(failed)} rating period(s) could not be fetched "
-                f"({names}); kept the cached data. Please try again later."
-            )
-        # USCF leg (tolerant — must not lose FIDE data).
-        def usprogress(done, total, label):
-            progress(done, total, "US Chess: " + (label or ""))
+        old_index = _cache_table.get_item(Key={"playerKey": key}).get("Item")
+        if fide_id:
+            payload = lib.scrape_player(fide_id, progress=progress)
+            if not payload["tournaments"] and not payload["info"]["name"]:
+                raise RuntimeError("No FIDE player found with that ID.")
+            _check_throttled(payload, old_index)
+        else:
+            payload = {
+                "fide_id": "",
+                "info": {"name": ""},
+                "tournaments": [],
+                "failed_periods": [],
+            }
 
-        try:
-            uscf_id = lib.find_uscf_id(
-                fide_id,
-                (payload["info"] or {}).get("name", ""),
-                link_get=link_get,
-                link_put=link_put,
-            )
-            if uscf_id:
-                import uschess_api as api
-
-                up = api.fetch_player(uscf_id, progress=usprogress)
-                # Round details: reuse across refreshes by section; only
-                # new sections cost crosstable calls.
-                if old_index and old_index.get("s3key"):
-                    try:
-                        old_payload = _get_object(old_index["s3key"])
-                        old_rounds = {
-                            t.get("section_id"): t.get("rounds", [])
-                            for t in (old_payload.get("uschess") or {}).get(
-                                "tournaments", []
-                            )
-                            if t.get("section_id")
-                        }
-                    except Exception:
-                        old_rounds = {}
-                for t in up["tournaments"]:
-                    if not t.get("rounds") and old_rounds.get(
-                        t.get("section_id")
-                    ):
-                        t["rounds"] = old_rounds[t["section_id"]]
-                _enrich_new_sections(uscf_id, up["tournaments"], old_rounds,
-                                     usprogress)
-                # FIDE takes precedence in the tab: flag USCF sections that
-                # duplicate a FIDE tournament, keeping only their USCF-only
-                # games for display (possibly none = fully shared).
-                _mark_fide_duplicates(payload["tournaments"],
-                                      up["tournaments"])
+        payload["uschess"] = None
+        payload["uschess_error"] = None
+        if uscf_id:
+            try:
+                up = _fetch_uschess(uscf_id, payload, old_index, progress)
                 payload["uschess"] = up
-                payload["uschess_error"] = None
-                payload["uscf_id"] = uscf_id
-            else:
-                payload["uschess"] = None
-                payload["uschess_error"] = (
-                    "No linked US Chess record found for this player."
-                )
-        except Exception as e:
-            payload["uschess"] = None
-            payload["uschess_error"] = str(e)
+                if not payload["info"]["name"]:
+                    payload["info"]["name"] = up["info"]["name"]
+            except Exception as e:
+                # Without FIDE data there is nothing to show, so fail the job;
+                # otherwise keep the FIDE results and report the USCF error.
+                if not fide_id:
+                    raise
+                payload["uschess_error"] = str(e)
 
-        s3key = _put_payload(fide_id, payload)
+        s3key = _put_payload(fide_id, uscf_id, payload)
         _cache_table.put_item(
             Item={
+                "playerKey": key,
                 "fideId": fide_id,
+                "uscfId": uscf_id,
                 "updatedAt": _now(),
-                "uscfId": payload.get("uscf_id", ""),
                 "tournaments": len(payload["tournaments"]),
                 "s3key": s3key,
             }
@@ -278,6 +239,54 @@ def worker(event, context):
                 ":u": _now(),
             },
         )
+
+
+def _check_throttled(payload, old_index):
+    """Raise rather than let a throttled partial scrape replace fuller data."""
+    failed = payload.get("failed_periods") or []
+    if not (failed and old_index):
+        return
+    if int(old_index.get("tournaments", 0)) <= len(payload["tournaments"]):
+        return
+    names = ", ".join(f"{f['period']} {f['rating_type']}" for f in failed[:8])
+    if len(failed) > 8:
+        names += ", …"
+    raise RuntimeError(
+        f"{len(failed)} rating period(s) could not be fetched "
+        f"({names}); kept the cached data. Please try again later."
+    )
+
+
+def _fetch_uschess(uscf_id, payload, old_index, progress):
+    """USCF history for the member, reusing cached round details."""
+    import uschess_api as api
+
+    def usprogress(done, total, label):
+        progress(done, total, "US Chess: " + (label or ""))
+
+    up = api.fetch_player(uscf_id, progress=usprogress)
+    # Round details: reuse across refreshes by section; only new sections
+    # cost crosstable calls.
+    old_rounds = {}
+    if old_index and old_index.get("s3key"):
+        try:
+            old_payload = _get_object(old_index["s3key"])
+            old_rounds = {
+                t.get("section_id"): t.get("rounds", [])
+                for t in (old_payload.get("uschess") or {}).get("tournaments", [])
+                if t.get("section_id")
+            }
+        except Exception:
+            old_rounds = {}
+    for t in up["tournaments"]:
+        if not t.get("rounds") and old_rounds.get(t.get("section_id")):
+            t["rounds"] = old_rounds[t["section_id"]]
+    _enrich_new_sections(uscf_id, up["tournaments"], old_rounds, usprogress)
+    # FIDE takes precedence in the tab: flag USCF sections that duplicate a
+    # FIDE tournament, keeping only their USCF-only games for display
+    # (possibly none = fully shared).
+    _mark_fide_duplicates(payload["tournaments"], up["tournaments"])
+    return up
 
 
 def _mark_fide_duplicates(fide_tournaments, uscf_sections):

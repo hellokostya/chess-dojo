@@ -199,12 +199,11 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
 
     const uscfId = getRatingUsername(user, RatingSystem.Uscf);
     const showUscf = !!uscfId && (isOwnProfile || !hideRatingUsername(user, RatingSystem.Uscf));
+    const otbAvailable = showFide || showUscf;
 
     // Online and OTB are fully separate views with separate stats — never mixed.
     // OTB first and default: it is the primary view for rated tournament players.
-    const [source, setSource] = useState<'online' | 'otb'>(() =>
-        showFide || showUscf ? 'otb' : 'online',
-    );
+    const [source, setSource] = useState<'online' | 'otb'>(() => (otbAvailable ? 'otb' : 'online'));
     const isOtb = source === 'otb';
 
     const fetchLichessGames = showLichess && includeLichess;
@@ -309,12 +308,17 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
     // scrapes FIDE/US Chess asynchronously. Fetched on demand when the OTB
     // view is selected; the include toggles only filter at render time.
     useEffect(() => {
-        if (!isOtb || !showFide || otbRequest.data || otbRequest.isLoading()) {
+        if (!isOtb || !otbAvailable || otbRequest.data || otbRequest.isLoading()) {
             return;
         }
         const controller = new AbortController();
         otbRequest.onStart();
-        pollOtbPayload(fideId, undefined, controller.signal)
+        // Only send IDs the viewer is allowed to see.
+        const ids = {
+            fideId: showFide ? fideId : undefined,
+            uscfId: showUscf ? uscfId : undefined,
+        };
+        pollOtbPayload(ids, undefined, controller.signal)
             .then((payload) => {
                 if (!controller.signal.aborted) {
                     otbRequest.onSuccess(payload);
@@ -327,10 +331,9 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
             });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOtb, showFide, fideId]);
+    }, [isOtb, showFide, fideId, showUscf, uscfId]);
 
     const onlineAvailable = showLichess || showChesscom;
-    const otbAvailable = showFide || showUscf;
 
     if (!onlineAvailable && !otbAvailable) {
         return (
