@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 
 var repository = database.DynamoDB
 var endpointSecret = ""
+var frontendHost = os.Getenv("frontendHost")
 
 func init() {
 	key, err := secrets.GetApiKey()
@@ -131,9 +133,6 @@ func formatPurchaseMessage(checkoutSession *stripe.CheckoutSession) string {
 	if username == "" {
 		username = checkoutSession.Metadata["username"]
 	}
-	if username == "" {
-		username = "anonymous"
-	}
 
 	email := ""
 	if checkoutSession.CustomerDetails != nil {
@@ -147,38 +146,44 @@ func formatPurchaseMessage(checkoutSession *stripe.CheckoutSession) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("💰 New purchase: **%s** — $%.2f %s", purchaseType, amount, currency))
-	sb.WriteString(fmt.Sprintf("\n**User:** %s", username))
+	fmt.Fprintf(&sb, "💰 New purchase: **%s** — $%.2f %s", purchaseType, amount, currency)
+	fmt.Fprintf(&sb, "\n**User:** ")
+	if username == "" {
+		fmt.Fprintf(&sb, "anonymous")
+	} else {
+		fmt.Fprintf(&sb, "[%s](%s/profile/%s)", username, frontendHost, username)
+	}
+
 	if email != "" {
-		sb.WriteString(fmt.Sprintf(" (%s)", email))
+		fmt.Fprintf(&sb, " (%s)", email)
 	}
 
 	switch purchaseType {
 	case string(payment.CheckoutSessionType_Subscription):
 		if tier := checkoutSession.Metadata["tier"]; tier != "" {
-			sb.WriteString(fmt.Sprintf("\n**Tier:** %s", tier))
+			fmt.Fprintf(&sb, "\n**Tier:** %s", tier)
 		}
 	case string(payment.CheckoutSessionType_Course):
 		if ids := checkoutSession.Metadata["courseIds"]; ids != "" {
-			sb.WriteString(fmt.Sprintf("\n**Courses:** %s", ids))
+			fmt.Fprintf(&sb, "\n**Courses:** %s", ids)
 		}
 	case string(payment.CheckoutSessionType_Coaching):
 		if eventId := checkoutSession.Metadata["eventId"]; eventId != "" {
-			sb.WriteString(fmt.Sprintf("\n**Event:** %s", eventId))
+			fmt.Fprintf(&sb, "\n**Event:** %s", eventId)
 		}
 		if coach := checkoutSession.Metadata["coachUsername"]; coach != "" {
-			sb.WriteString(fmt.Sprintf(" with coach %s", coach))
+			fmt.Fprintf(&sb, " with coach %s", coach)
 		}
 	case string(payment.CheckoutSessionType_GameReview):
 		if reviewType := checkoutSession.Metadata["reviewType"]; reviewType != "" {
-			sb.WriteString(fmt.Sprintf("\n**Review type:** %s", reviewType))
+			fmt.Fprintf(&sb, "\n**Review type:** %s", reviewType)
 		}
 		if cohort, id := checkoutSession.Metadata["cohort"], checkoutSession.Metadata["id"]; cohort != "" || id != "" {
-			sb.WriteString(fmt.Sprintf(" (%s/%s)", cohort, id))
+			fmt.Fprintf(&sb, " (%s/%s)", cohort, id)
 		}
 	}
 
-	sb.WriteString(fmt.Sprintf("\n**Session:** `%s`", checkoutSession.ID))
+	fmt.Fprintf(&sb, "\n**Session:** `%s`", checkoutSession.ID)
 	return sb.String()
 }
 
