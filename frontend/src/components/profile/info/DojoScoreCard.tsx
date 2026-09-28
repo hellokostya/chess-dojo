@@ -6,6 +6,7 @@ import {
     getCurrentCount,
     getTotalCategoryScore,
     getTotalScore,
+    isRequirementAvailableForSubscriptionTier,
     RequirementCategory,
 } from '@/database/requirement';
 import {
@@ -20,6 +21,7 @@ import CohortIcon from '@/scoreboard/CohortIcon';
 import { CrossedSwordIcon } from '@/style/CrossedSwordIcon';
 import { RatingSystemIcon } from '@/style/RatingSystemIcons';
 import { CategoryColors } from '@/style/ThemeProvider';
+import { getSubscriptionTier } from '@jackstenglein/chess-dojo-common/src/database/user';
 import { isCustom } from '@jackstenglein/chess-dojo-common/src/ratings/ratings';
 import { BarChart, TaskAlt } from '@mui/icons-material';
 import {
@@ -125,12 +127,16 @@ interface DojoScoreCardProps {
 
 const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
     const { user: viewer } = useAuth();
-    const { requirements } = useRequirements(cohort, false);
+    const { requirements: cohortRequirements } = useRequirements(cohort, false);
     const { entries: timeline } = useTimelineContext();
     const t = useTranslations('profile.info');
     const theme = useTheme();
     const tCategory = useTranslations('enums.requirementCategory');
     const tRating = useTranslations('enums.ratingSystem');
+    const subscriptionTier = getSubscriptionTier(user);
+    const requirements = cohortRequirements.filter((requirement) =>
+        isRequirementAvailableForSubscriptionTier(requirement, subscriptionTier),
+    );
 
     const totalScore = getTotalScore(cohort, requirements);
     const cohortScore = getCohortScore(user, cohort, requirements, timeline);
