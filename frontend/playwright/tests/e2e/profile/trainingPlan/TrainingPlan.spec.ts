@@ -292,8 +292,8 @@ test.describe('Training Plan', () => {
         await gotoTrainingPlan(page);
 
         const today = page.getByTestId('training-plan-today');
-        await expect(today.getByText('0 / 75 pages completed')).toBeVisible();
-        await expect(today.getByText('5 / 75 pages completed')).toBeVisible();
+        await expect(today.getByText('0 / 75 pages')).toBeVisible();
+        await expect(today.getByText('5 / 75 pages')).toBeVisible();
     });
 
     test('displays correct progress text in daily card for task with no min goal', async ({
@@ -316,7 +316,7 @@ test.describe('Training Plan', () => {
         await gotoTrainingPlan(page);
 
         await expect(
-            page.getByTestId('training-plan-today').getByText('0 / 100 pages completed'),
+            page.getByTestId('training-plan-today').getByText('0 / 100 pages'),
         ).toBeVisible();
     });
 

@@ -186,8 +186,15 @@ export const ProgressUpdater = ({
                             <Stepper
                                 value={`${value}`}
                                 onChange={(text) =>
+                                    // Kept between 0 and the goal; a typed "-1" becomes 0.
                                     setValue(
-                                        Math.min(parseInt(text.replace(/\D/g, '')) || 0, maxValue),
+                                        Math.min(
+                                            Math.max(
+                                                parseInt(text.replace(/[^0-9-]/g, '')) || 0,
+                                                0,
+                                            ),
+                                            maxValue,
+                                        ),
                                     )
                                 }
                                 onDecrement={() => setValue((v) => Math.max(v - 1, 0))}
