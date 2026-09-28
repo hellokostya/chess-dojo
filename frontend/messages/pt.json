@@ -155,7 +155,7 @@
             "inputSlider": {
                 "decrement": "Diminuir",
                 "increment": "Aumentar",
-                "progressCount": "Contador de progresso",
+                "progressCount": "Progresso",
                 "count": "Quantidade"
             },
             "verbs": {

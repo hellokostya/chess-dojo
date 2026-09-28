@@ -14,6 +14,7 @@ import {
     ScoreboardDisplay,
 } from '@/database/requirement';
 import { TimeFormat } from '@/database/user';
+import { History, InfoOutlined } from '@mui/icons-material';
 import {
     Alert,
     Box,
@@ -22,11 +23,12 @@ import {
     DialogActions,
     DialogContent,
     FormControlLabel,
-    Link,
+    IconButton,
     Stack,
     TextField,
     ToggleButton,
     ToggleButtonGroup,
+    Tooltip,
     Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers-pro';
@@ -36,6 +38,7 @@ import { use, useState } from 'react';
 import { SectionLabel } from './SectionLabel';
 import { Stepper } from './Stepper';
 import { TaskDialogView } from './TaskDialog';
+import { getTaskUnit } from './taskUnit';
 
 const NUMBER_REGEX = /^[0-9]*$/;
 /** How much the −/+ buttons change the time by, in minutes. */
@@ -80,6 +83,7 @@ export const ProgressUpdater = ({
     const [value, setValue] = useState<number>(Math.max(currentCount - startCount, 0));
     const [subtract, setSubtract] = useState(false);
     const maxValue = Math.max(totalCount - startCount, 0);
+    const unit = getTaskUnit(requirement);
     const [markComplete, setMarkComplete] = useState(true);
     const [date, setDate] = useState<DateTime | null>(
         // Rounded down to the hour, a tidier default than the current minute.
@@ -213,7 +217,7 @@ export const ProgressUpdater = ({
             <DialogContent sx={{ pt: '4px !important' }}>
                 <Stack spacing={2.5}>
                     {isSlider && (
-                        <Section label={requirement.progressBarSuffix || tSlider('progressCount')}>
+                        <Section label={unit || tSlider('progressCount')}>
                             <Stepper
                                 value={`${value}`}
                                 onChange={(text) =>
@@ -226,7 +230,7 @@ export const ProgressUpdater = ({
                                 decrementDisabled={value <= 0}
                                 incrementDisabled={value >= maxValue}
                                 unit={`/ ${maxValue}`}
-                                label={requirement.progressBarSuffix || tSlider('count')}
+                                label={unit || tSlider('count')}
                                 decrementLabel={tSlider('decrement')}
                                 incrementLabel={tSlider('increment')}
                                 width='100%'
@@ -348,30 +352,29 @@ export const ProgressUpdater = ({
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, gap: 1 }}>
                 {setView && (
-                    <Typography variant='body2' sx={{ color: 'text.secondary', mr: 'auto' }}>
-                        <Link
-                            component='button'
-                            type='button'
-                            color='inherit'
-                            underline='hover'
-                            onClick={() => setView(TaskDialogView.Details)}
-                            disabled={request.isLoading()}
-                        >
-                            {tCommon('taskDetails')}
-                        </Link>
-                        {' · '}
-                        <Link
-                            component='button'
-                            type='button'
-                            color='inherit'
-                            underline='hover'
-                            onClick={() => setView(TaskDialogView.History)}
-                            disabled={request.isLoading()}
-                            data-testid='task-updater-show-history-button'
-                        >
-                            {tCommon('showHistory')}
-                        </Link>
-                    </Typography>
+                    <Stack direction='row' sx={{ mr: 'auto', ml: -1 }}>
+                        <Tooltip title={tCommon('taskDetails')}>
+                            <IconButton
+                                aria-label={tCommon('taskDetails')}
+                                onClick={() => setView(TaskDialogView.Details)}
+                                disabled={request.isLoading()}
+                                sx={{ color: 'text.secondary' }}
+                            >
+                                <InfoOutlined fontSize='small' />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={tCommon('showHistory')}>
+                            <IconButton
+                                aria-label={tCommon('showHistory')}
+                                onClick={() => setView(TaskDialogView.History)}
+                                disabled={request.isLoading()}
+                                sx={{ color: 'text.secondary' }}
+                                data-testid='task-updater-show-history-button'
+                            >
+                                <History fontSize='small' />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
                 )}
                 <Button
                     color='inherit'

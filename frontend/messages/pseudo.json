@@ -155,7 +155,7 @@
             "inputSlider": {
                 "decrement": "[T] Decrement",
                 "increment": "[T] Increment",
-                "progressCount": "[T] Progress count",
+                "progressCount": "[T] Progress",
                 "count": "[T] Count"
             },
             "verbs": {

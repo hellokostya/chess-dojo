@@ -1,5 +1,6 @@
 import { useRequirement } from '@/api/cache/requirements';
 import { useAuth } from '@/auth/Auth';
+import { getTaskUnit } from '@/components/profile/trainingPlan/taskUnit';
 import { TrainingPlanIcon } from '@/components/profile/trainingPlan/TrainingPlanIcon';
 import { formatTime, RequirementCategory, ScoreboardDisplay } from '@/database/requirement';
 import { TimelineEntry, TimelineSpecialRequirementId } from '@/database/timeline';
@@ -224,7 +225,10 @@ function ProgressBody({ entry, simple }: { entry: TimelineEntry; simple?: boolea
     const delta = isTime ? 0 : current - Math.max(entry.previousCount - start, 0);
     const percent = total > 0 ? Math.min(100, (100 * current) / total) : 0;
     const color = CategoryColors[entry.requirementCategory] ?? undefined;
-    const unit = entry.progressBarSuffix?.toLowerCase() ?? '';
+    const unit = getTaskUnit({
+        progressBarSuffix: entry.progressBarSuffix,
+        name: entry.requirementName,
+    }).toLowerCase();
 
     const showBar = hasBar && total > 0;
     const countText = isTime

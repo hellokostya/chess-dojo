@@ -46,6 +46,7 @@ import { SCHEDULE_CLASSICAL_GAME_TASK_ID, SuggestedTask } from '../suggestedTask
 import { TaskDescription } from '../TaskDescription';
 import { TaskDialog, TaskDialogView } from '../TaskDialog';
 import { taskDisplayName } from '../taskDisplayName';
+import { getTaskUnit } from '../taskUnit';
 import { TrainingPlanContext } from '../TrainingPlanTab';
 import { useTrainingPlanProgress } from '../useTrainingPlan';
 import { WorkGoalSettingsEditor } from '../WorkGoalSettingsEditor';
@@ -479,7 +480,7 @@ function DailyTrainingPlanItem({
                                         value={progressCurrent}
                                         max={progressTotal}
                                         min={0}
-                                        suffix={task.progressBarSuffix.toLowerCase()}
+                                        suffix={getTaskUnit(task).toLowerCase()}
                                         isTime={
                                             task.scoreboardDisplay === ScoreboardDisplay.Minutes
                                         }
