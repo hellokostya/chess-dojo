@@ -5,7 +5,7 @@ import { useRequest } from '@/api/Request';
 import { ListNewsfeedResponse } from '@/api/newsfeedApi';
 import { useAuth } from '@/auth/Auth';
 import { CompactNewsfeedItem } from '@/components/newsfeed/CompactNewsfeedItem';
-import { isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
+import { isNegativeEntry, isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
 import { TimelineEntry } from '@/database/timeline';
 import { Feed, OpenInNew } from '@mui/icons-material';
 import { Button, Card, CardContent, Skeleton, Stack, Typography } from '@mui/material';
@@ -27,7 +27,7 @@ export function NewsfeedCard() {
         // Most recently logged first, so the latest activity is at the top.
         setEntries(
             resp.entries
-                .filter((entry) => !isRestDayEntry(entry))
+                .filter((entry) => !isRestDayEntry(entry) && !isNegativeEntry(entry))
                 .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
                 .slice(0, MAX_ITEMS),
         );

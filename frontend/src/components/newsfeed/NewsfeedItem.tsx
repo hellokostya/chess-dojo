@@ -7,6 +7,15 @@ import { CompactNewsfeedItem } from './CompactNewsfeedItem';
 export const isRestDayEntry = (entry: TimelineEntry) =>
     entry.requirementId === TimelineSpecialRequirementId.RestDay;
 
+/**
+ * Whether an entry only took progress away (a task marked not done, a lower count,
+ * or time removed). These are corrections, not news, so the newsfeed leaves them out.
+ */
+export const isNegativeEntry = (entry: TimelineEntry) =>
+    entry.newCount <= entry.previousCount &&
+    entry.minutesSpent <= 0 &&
+    (entry.newCount < entry.previousCount || entry.minutesSpent < 0);
+
 interface NewsfeedItemProps {
     entry: TimelineEntry;
     onEdit: (entry: TimelineEntry) => void;

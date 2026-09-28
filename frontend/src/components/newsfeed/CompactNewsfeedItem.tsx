@@ -450,18 +450,15 @@ function DojoPointsChange({ entry }: { entry: TimelineEntry }) {
             sx={{ alignItems: 'center', gap: 0.5 }}
             data-testid='entry-dojo-points'
         >
-            <ChessDojoIcon sx={{ fontSize: '1rem', color: 'dojoOrange.main' }} aria-hidden />
-            <Typography variant='caption' sx={{ color: 'text.secondary' }}>
+            <ChessDojoIcon sx={{ fontSize: '1rem', color: 'text.primary' }} aria-hidden />
+            <Typography variant='caption' sx={{ color: 'text.primary' }}>
                 {t('dojoPointsLabel')}
             </Typography>
             <Typography
                 variant='caption'
-                sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
+                sx={{ color: 'text.primary', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
             >
-                {formatPoints(before)} →{' '}
-                <Box component='span' sx={{ color: 'dojoOrange.main' }}>
-                    {formatPoints(entry.totalDojoPoints)}
-                </Box>
+                {formatPoints(before)} → {formatPoints(entry.totalDojoPoints)}
             </Typography>
         </Stack>
     );

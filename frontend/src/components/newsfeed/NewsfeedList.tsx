@@ -5,7 +5,7 @@ import { useRequest } from '@/api/Request';
 import { ListNewsfeedResponse } from '@/api/newsfeedApi';
 import { useAuth } from '@/auth/Auth';
 import LoadMoreButton from '@/components/newsfeed/LoadMoreButton';
-import NewsfeedItem, { isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
+import NewsfeedItem, { isNegativeEntry, isRestDayEntry } from '@/components/newsfeed/NewsfeedItem';
 import MultipleSelectChip, { MultipleSelectChipOption } from '@/components/ui/MultipleSelectChip';
 import { RequirementCategory } from '@/database/requirement';
 import { TimelineEntry, TimelineSpecialRequirementId } from '@/database/timeline';
@@ -148,7 +148,7 @@ const NewsfeedList: React.FC<NewsfeedListProps> = ({
                         (rhs.date || rhs.createdAt).localeCompare(lhs.date || lhs.createdAt),
                     ),
                 )
-                .filter((e) => !isRestDayEntry(e))
+                .filter((e) => !isRestDayEntry(e) && !isNegativeEntry(e))
                 .filter((e) => {
                     return seen[e.id] ? false : (seen[e.id] = true);
                 });
