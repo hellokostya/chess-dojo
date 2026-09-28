@@ -6,6 +6,7 @@ import { formatTime, RequirementCategory, ScoreboardDisplay } from '@/database/r
 import { TimelineEntry, TimelineSpecialRequirementId } from '@/database/timeline';
 import Avatar from '@/profile/Avatar';
 import CohortIcon from '@/scoreboard/CohortIcon';
+import { ChessDojoIcon } from '@/style/ChessDojoIcon';
 import { CategoryColors } from '@/style/ThemeProvider';
 import { ChatBubbleOutlineOutlined, Check, Edit } from '@mui/icons-material';
 import { Box, Button, IconButton, LinearProgress, Stack, Tooltip, Typography } from '@mui/material';
@@ -222,7 +223,11 @@ function ProgressBody({ entry, simple }: { entry: TimelineEntry; simple?: boolea
     const start = requirement?.startCount || 0;
     const current = Math.max(entry.newCount - start, 0);
     const total = Math.max(entry.totalCount - start, 0);
-    const delta = isTime ? 0 : current - Math.max(entry.previousCount - start, 0);
+    // Only counted tasks show a change in units; a checkbox going from 1 to 0 is
+    // "marked not done", not "−1".
+    const isCounted = hasBar && !isTime;
+    const delta = isCounted ? current - Math.max(entry.previousCount - start, 0) : 0;
+    const reopened = !isCounted && !isComplete && entry.newCount < entry.previousCount;
     const percent = total > 0 ? Math.min(100, (100 * current) / total) : 0;
     const color = CategoryColors[entry.requirementCategory] ?? undefined;
     const unit = getTaskUnit({
@@ -251,6 +256,10 @@ function ProgressBody({ entry, simple }: { entry: TimelineEntry; simple?: boolea
                     <Check sx={{ fontSize: '0.9rem' }} />
                     {t('completed')}
                 </Typography>
+            ) : reopened ? (
+                <Typography variant='caption' sx={{ fontWeight: 600, color: 'warning.main' }}>
+                    {t('markedNotDone')}
+                </Typography>
             ) : (
                 delta !== 0 && (
                     <Typography
@@ -262,14 +271,6 @@ function ProgressBody({ entry, simple }: { entry: TimelineEntry; simple?: boolea
                         }`.trim()}
                     </Typography>
                 )
-            )}
-            {entry.minutesSpent !== 0 && (
-                <Typography variant='caption' sx={{ color: 'text.secondary' }}>
-                    {`${entry.minutesSpent > 0 ? '+' : '−'}${formatTime(
-                        Math.abs(entry.minutesSpent),
-                        tCommon,
-                    )}`}
-                </Typography>
             )}
         </>
     );
@@ -381,48 +382,8 @@ function ProgressBody({ entry, simple }: { entry: TimelineEntry; simple?: boolea
                 sx={{ alignItems: 'center', columnGap: 1, flexWrap: 'wrap' }}
                 data-testid='entry-deltas'
             >
-                {isComplete ? (
-                    <Typography
-                        variant='caption'
-                        sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 0.25,
-                            fontWeight: 600,
-                            color: 'success.main',
-                        }}
-                    >
-                        <Check sx={{ fontSize: '0.9rem' }} />
-                        {t('completed')}
-                    </Typography>
-                ) : (
-                    delta !== 0 && (
-                        <Typography
-                            variant='caption'
-                            sx={{
-                                fontWeight: 600,
-                                color: delta > 0 ? 'success.main' : 'warning.main',
-                            }}
-                        >
-                            {`${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${
-                                Math.abs(delta) === 1 ? singularUnit(unit) : unit
-                            }`.trim()}
-                        </Typography>
-                    )
-                )}
-                {entry.minutesSpent !== 0 && (
-                    <Typography variant='caption' sx={{ color: 'text.secondary' }}>
-                        {`${entry.minutesSpent > 0 ? '+' : '−'}${formatTime(
-                            Math.abs(entry.minutesSpent),
-                            tCommon,
-                        )}`}
-                    </Typography>
-                )}
-                {entry.dojoPoints > 0 && (
-                    <Typography variant='caption' sx={{ color: 'text.secondary' }}>
-                        {t('pointsGained', { points: Math.round(100 * entry.dojoPoints) / 100 })}
-                    </Typography>
-                )}
+                {changes}
+                {entry.dojoPoints > 0 && <DojoPointsChange entry={entry} />}
                 {showBar && (
                     <Typography
                         variant='caption'
@@ -472,4 +433,36 @@ function percentLabel(percent: number): string {
         return `${Math.round(percent * 10) / 10}%`;
     }
     return `${Math.round(percent)}%`;
+}
+
+/** Rounds points for display: 12.5, 0.05, 3. */
+function formatPoints(points: number): string {
+    return `${Math.round(100 * points) / 100}`;
+}
+
+/** The entry's Dojo points as a before → after change, e.g. "Dojo points 1 → 5". */
+function DojoPointsChange({ entry }: { entry: TimelineEntry }) {
+    const t = useTranslations('newsfeed');
+    const before = entry.totalDojoPoints - entry.dojoPoints;
+    return (
+        <Stack
+            direction='row'
+            sx={{ alignItems: 'center', gap: 0.5 }}
+            data-testid='entry-dojo-points'
+        >
+            <ChessDojoIcon sx={{ fontSize: '1rem', color: 'dojoOrange.main' }} aria-hidden />
+            <Typography variant='caption' sx={{ color: 'text.secondary' }}>
+                {t('dojoPointsLabel')}
+            </Typography>
+            <Typography
+                variant='caption'
+                sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
+            >
+                {formatPoints(before)} →{' '}
+                <Box component='span' sx={{ color: 'dojoOrange.main' }}>
+                    {formatPoints(entry.totalDojoPoints)}
+                </Box>
+            </Typography>
+        </Stack>
+    );
 }
