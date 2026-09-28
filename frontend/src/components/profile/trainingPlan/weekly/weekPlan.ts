@@ -32,7 +32,7 @@ export interface WeekRow {
 }
 
 /** The state a task is in on one day. */
-export type CellState = 'none' | 'done' | 'missed' | 'pending' | 'extra';
+type CellState = 'none' | 'done' | 'missed' | 'pending' | 'extra';
 
 export function getCellState(cell: WeekCell, day: WeekDay): CellState {
     if (cell.goalMinutes === 0) {
@@ -125,7 +125,7 @@ export function getWeekRows({
     return [...rows.values()];
 }
 
-export function getDayOfWeekAfterDate(reference: Date, day: number): string {
+function getDayOfWeekAfterDate(reference: Date, day: number): string {
     reference.setHours(0, 0, 0, 0);
     if (reference.getDay() < day) {
         reference.setDate(reference.getDate() + day - reference.getDay());
@@ -136,7 +136,7 @@ export function getDayOfWeekAfterDate(reference: Date, day: number): string {
 }
 
 /** How a task line should be drawn for one day. */
-export interface ChipDisplay {
+interface ChipDisplay {
     state: CellState;
     /** Drawn as done: green, with a check. Unplanned time counts as done. */
     looksDone: boolean;

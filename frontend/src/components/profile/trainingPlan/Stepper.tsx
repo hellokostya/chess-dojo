@@ -1,9 +1,6 @@
 import { Add, Remove } from '@mui/icons-material';
 import { alpha, Box, IconButton, InputBase, Theme, Typography } from '@mui/material';
 
-/** The width shared by every stepper, so stacked steppers line up. */
-export const STEPPER_WIDTH = 224;
-
 /**
  * A number with − and + buttons either side, in one outlined box. The unit sits
  * inside the box, after the number.
@@ -20,7 +17,6 @@ export function Stepper({
     decrementLabel,
     incrementLabel,
     warning,
-    width = STEPPER_WIDTH,
     primary,
     'data-testid': dataTestId,
 }: {
@@ -37,7 +33,6 @@ export function Stepper({
     incrementLabel: string;
     /** Shows the number in the warning colour, e.g. when removing time. */
     warning?: boolean;
-    width?: number | string;
     /** Marks this as the main value to update: taller, with a blue outline and tinted buttons. */
     primary?: boolean;
     'data-testid'?: string;
@@ -61,7 +56,7 @@ export function Stepper({
             sx={{
                 display: 'flex',
                 alignItems: 'center',
-                width,
+                width: 1,
                 height: size,
                 border: primary ? 1.5 : 1,
                 borderColor: primary ? 'primary.main' : 'divider',

@@ -5,7 +5,6 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
         <Typography
             variant='caption'
-            className='section-label'
             sx={{
                 color: 'text.secondary',
                 fontWeight: 600,

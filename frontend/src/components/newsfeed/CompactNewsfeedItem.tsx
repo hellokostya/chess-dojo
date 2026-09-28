@@ -18,8 +18,8 @@ import { useEntryDateTime } from './NewsfeedItemHeader';
 import ReactionList from './ReactionList';
 
 /** The size of the avatar column; the entry's content lines up to its right. */
-export const AVATAR_SIZE = 36;
-export const COLUMN_GAP = 1.5;
+const AVATAR_SIZE = 36;
+const COLUMN_GAP = 1.5;
 
 /** The author's name, cohort badge and the entry's time, stacked. */
 function EntryByline({ entry }: { entry: TimelineEntry }) {
@@ -173,7 +173,7 @@ export function CompactNewsfeedItem({
 }
 
 /** The task worked on: its category icon in the category's colour, and its name. */
-export function TaskLine({ category, name }: { category: RequirementCategory; name: string }) {
+function TaskLine({ category, name }: { category: RequirementCategory; name: string }) {
     const tCategory = useTranslations('enums.requirementCategory');
     const color = CategoryColors[category];
     return (

@@ -1,5 +1,4 @@
 import { Link } from '@/components/navigation/Link';
-import { CONTENT_MAX_WIDTH } from '@/components/newsfeed/layout';
 import { TrainingPlanIcon } from '@/components/profile/trainingPlan/TrainingPlanIcon';
 import { RequirementCategory } from '@/database/requirement';
 import { TimelineEntry } from '@/database/timeline';
@@ -7,6 +6,9 @@ import { CategoryColors } from '@/style/ThemeProvider';
 import { Box, CardActionArea, Stack, Typography } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { ReactNode } from 'react';
+
+/** How wide the game card grows, so it stays game-sized on wide screens. */
+const CARD_MAX_WIDTH = 480;
 
 interface GameNewsfeedItemProps {
     entry: TimelineEntry;
@@ -53,8 +55,7 @@ const GameNewsfeedItem: React.FC<GameNewsfeedItemProps> = ({ entry }) => {
                 component={Link}
                 href={gameUrl}
                 sx={{
-                    // Game-sized rather than column-wide on larger screens.
-                    maxWidth: CONTENT_MAX_WIDTH,
+                    maxWidth: CARD_MAX_WIDTH,
                     border: 1,
                     borderColor: 'divider',
                     borderRadius: 2,

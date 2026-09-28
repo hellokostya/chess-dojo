@@ -170,17 +170,8 @@
             },
             "quickLog": {
                 "logTraining": "Enregistrer l'entraînement",
-                "logTooltip": "Enregistrer le temps suggéré restant aujourd'hui pour cette tâche",
-                "logged": "{time} enregistré sur {name}",
-                "undo": "Annuler",
-                "edit": "Modifier",
-                "dialogTitle": "Enregistrer le temps",
-                "confirm": "Enregistrer",
-                "countCompleted": "{suffix} terminé(s)",
-                "incrementCount": "Augmenter le nombre",
-                "decrementCount": "Diminuer le nombre",
-                "decrementMinutes": "Diminuer les minutes",
-                "incrementMinutes": "Augmenter les minutes"
+                "logTooltip": "Enregistrer la progression et le temps pour cette tâche",
+                "undo": "Annuler"
             },
             "daily": {
                 "today": "Aujourd'hui",
@@ -336,7 +327,6 @@
                 "largeTimeWarning": "Tu ajoutes beaucoup de temps ! Vérifie bien ta saisie avant d'enregistrer.",
                 "addTime": "Ajouter 5 minutes",
                 "removeTime": "Retirer 5 minutes",
-                "removingTime": "Temps retiré",
                 "timeSpent": "Temps passé",
                 "minutesShort": "min",
                 "totalTimeChange": "Total {before} → {after}"

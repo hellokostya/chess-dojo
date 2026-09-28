@@ -40,7 +40,6 @@ import { Stepper } from './Stepper';
 import { TaskDialogView } from './TaskDialog';
 import { getTaskUnit } from './taskUnit';
 
-const NUMBER_REGEX = /^[0-9]*$/;
 /** How much the −/+ buttons change the time by, in minutes. */
 const TIME_STEP_MINUTES = 5;
 const TIME_WARNING_THRESHOLD_MINS = 60 * 5;
@@ -81,7 +80,6 @@ export const ProgressUpdater = ({
     // a task starting at puzzle #307 shows 0 until puzzle #307 is solved.
     const startCount = requirement.startCount || 0;
     const [value, setValue] = useState<number>(Math.max(currentCount - startCount, 0));
-    const [subtract, setSubtract] = useState(false);
     const maxValue = Math.max(totalCount - startCount, 0);
     const unit = getTaskUnit(requirement);
     const [markComplete, setMarkComplete] = useState(true);
@@ -101,12 +99,8 @@ export const ProgressUpdater = ({
         timerHours = Math.floor(initialMinutes / 60);
         timerMinutes = initialMinutes % 60;
     }
-    const [hours, setHours] = useState(timerHours ? `${timerHours}` : '');
-    const [minutes, setMinutes] = useState(timerMinutes ? `${timerMinutes}` : '');
-
-    // The minutes box only accepts digits, so errors are never shown; kept for
-    // the validation in onSubmit.
-    const [, setErrors] = useState<Record<string, string>>({});
+    // The time being logged, in minutes. Below zero removes time from the task.
+    const [addedTime, setAddedTime] = useState(60 * timerHours + timerMinutes);
     const [notes, setNotes] = useState('');
     const request = useRequest();
 
@@ -121,49 +115,21 @@ export const ProgressUpdater = ({
     const isMinutes = requirement.scoreboardDisplay === ScoreboardDisplay.Minutes;
     const useTwelveHourClock = user?.timeFormat !== TimeFormat.TwentyFourHour;
 
-    const hoursInt = parseInt(hours) || 0;
-    const minutesInt = parseInt(minutes) || 0;
     const previousTime = progress?.minutesSpent[cohort] ?? 0;
-    const enteredTime = 60 * hoursInt + minutesInt;
-    // Removing time can't take the task's total below zero.
-    const addedTime = subtract ? -Math.min(enteredTime, previousTime) : enteredTime;
+    const subtract = addedTime < 0;
+    const enteredTime = Math.abs(addedTime);
     const totalTime = previousTime + addedTime;
 
     /**
      * Changes the time being logged by the given number of minutes. Going below zero
      * removes time from the task instead, down to what has already been logged.
      */
-    const onQuickAdd = (change: number) => onSetTime(Math.max(addedTime + change, -previousTime));
+    const onQuickAdd = (change: number) => onSetTime(addedTime + change);
 
-    /** Sets the time being logged; below zero removes time from the task. */
-    const onSetTime = (signed: number) => {
-        const magnitude = Math.abs(signed);
-        const newHours = Math.floor(magnitude / 60);
-        const newMinutes = magnitude % 60;
-        setSubtract(signed < 0);
-        setHours(newHours ? `${newHours}` : '');
-        setMinutes(newMinutes ? `${newMinutes}` : '');
-        setErrors({});
-    };
+    /** Sets the time being logged. Removing time can't take the task's total below zero. */
+    const onSetTime = (minutes: number) => setAddedTime(Math.max(minutes, -previousTime));
 
     const onSubmit = () => {
-        const errors: Record<string, string> = {};
-        if (hours !== '') {
-            if (!NUMBER_REGEX.test(hours)) {
-                errors.hours = tCommon('mustBeNumeric');
-            }
-        }
-        if (minutes !== '') {
-            if (!NUMBER_REGEX.test(minutes)) {
-                errors.minutes = tCommon('mustBeNumeric');
-            }
-        }
-        setErrors(errors);
-
-        if (Object.keys(errors).length > 0) {
-            return;
-        }
-
         let newCount = value + startCount;
         if (isMinutes) {
             newCount = totalTime;
@@ -199,8 +165,7 @@ export const ProgressUpdater = ({
                 });
                 onNewEntry(resp.data.timelineEntry);
                 onClose();
-                setHours('');
-                setMinutes('');
+                setAddedTime(0);
                 request.reset();
                 // Only clear the timer when it was tracking this task or not specific to a task.
                 if (!timerTask || timerTask.id === requirement.id) {
@@ -233,7 +198,6 @@ export const ProgressUpdater = ({
                                 label={unit || tSlider('count')}
                                 decrementLabel={tSlider('decrement')}
                                 incrementLabel={tSlider('increment')}
-                                width='100%'
                                 primary
                                 data-testid='task-updater-count'
                             />
@@ -269,11 +233,10 @@ export const ProgressUpdater = ({
                     >
                         <Stack spacing={1}>
                             <Stepper
-                                value={subtract ? `-${enteredTime}` : `${enteredTime}`}
-                                onChange={(text) => {
-                                    const n = parseInt(text.replace(/[^0-9-]/g, '')) || 0;
-                                    onSetTime(Math.max(n, -previousTime));
-                                }}
+                                value={`${addedTime}`}
+                                onChange={(text) =>
+                                    onSetTime(parseInt(text.replace(/[^0-9-]/g, '')) || 0)
+                                }
                                 onDecrement={() => onQuickAdd(-TIME_STEP_MINUTES)}
                                 onIncrement={() => onQuickAdd(TIME_STEP_MINUTES)}
                                 decrementDisabled={addedTime <= -previousTime}
@@ -282,7 +245,6 @@ export const ProgressUpdater = ({
                                 decrementLabel={t('removeTime')}
                                 incrementLabel={t('addTime')}
                                 warning={subtract}
-                                width='100%'
                                 data-testid='task-updater-minutes'
                             />
                             <ToggleButtonGroup

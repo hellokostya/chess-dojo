@@ -170,17 +170,8 @@
             },
             "quickLog": {
                 "logTraining": "[T] Log training",
-                "logTooltip": "[T] Record today's remaining suggested time for this task",
-                "logged": "[T] Logged {time} on {name}",
-                "undo": "[T] Undo",
-                "edit": "[T] Edit",
-                "dialogTitle": "[T] Log time",
-                "confirm": "[T] Log",
-                "countCompleted": "[T] {suffix} completed",
-                "incrementCount": "[T] Increase count",
-                "decrementCount": "[T] Decrease count",
-                "decrementMinutes": "[T] Decrease minutes",
-                "incrementMinutes": "[T] Increase minutes"
+                "logTooltip": "[T] Log progress and time for this task",
+                "undo": "[T] Undo"
             },
             "daily": {
                 "today": "[T] Today",
@@ -336,7 +327,6 @@
                 "largeTimeWarning": "[T] You're adding a lot of time! Please double-check your input before saving.",
                 "addTime": "[T] Add 5 minutes",
                 "removeTime": "[T] Remove 5 minutes",
-                "removingTime": "[T] Removing time",
                 "timeSpent": "[T] Time spent",
                 "minutesShort": "[T] min",
                 "totalTimeChange": "[T] Total {before} → {after}"

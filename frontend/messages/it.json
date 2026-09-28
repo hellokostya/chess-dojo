@@ -170,17 +170,8 @@
             },
             "quickLog": {
                 "logTraining": "Registra allenamento",
-                "logTooltip": "Registra il tempo suggerito rimasto oggi per questa attività",
-                "logged": "Registrati {time} su {name}",
-                "undo": "Annulla",
-                "edit": "Modifica",
-                "dialogTitle": "Registra tempo",
-                "confirm": "Registra",
-                "countCompleted": "{suffix} completati",
-                "incrementCount": "Aumenta il numero",
-                "decrementCount": "Riduci il numero",
-                "decrementMinutes": "Riduci i minuti",
-                "incrementMinutes": "Aumenta i minuti"
+                "logTooltip": "Registra progressi e tempo per questa attività",
+                "undo": "Annulla"
             },
             "daily": {
                 "today": "Oggi",
@@ -336,7 +327,6 @@
                 "largeTimeWarning": "Stai aggiungendo parecchio tempo! Controlla bene quello che hai inserito prima di salvare.",
                 "addTime": "Aggiungi 5 minuti",
                 "removeTime": "Togli 5 minuti",
-                "removingTime": "Tempo da togliere",
                 "timeSpent": "Tempo impiegato",
                 "minutesShort": "min",
                 "totalTimeChange": "Totale {before} → {after}"
