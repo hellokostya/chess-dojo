@@ -207,6 +207,14 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
                         />
                     )}
 
+                    <ProgressRow
+                        icon={<TaskAlt />}
+                        label={t('allTasks')}
+                        value={`${percentComplete}%`}
+                        percent={percentComplete}
+                        color={theme.palette.text.primary}
+                    />
+
                     {classicalGamesTask && (
                         <ProgressRow
                             icon={<CrossedSwordIcon />}
@@ -220,14 +228,6 @@ const DojoScoreCard: React.FC<DojoScoreCardProps> = ({ user, cohort }) => {
                             color={theme.palette.secondary.main}
                         />
                     )}
-
-                    <ProgressRow
-                        icon={<TaskAlt />}
-                        label={t('allTasks')}
-                        value={`${percentComplete}%`}
-                        percent={percentComplete}
-                        color={theme.palette.text.primary}
-                    />
 
                     {categories.map((c) => {
                         const value = getCategoryScore(user, cohort, c, requirements, timeline);
