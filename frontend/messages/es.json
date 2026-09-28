@@ -166,7 +166,8 @@
                 "play": "Jugar",
                 "spar": "Sparring",
                 "annotate": "Anotar",
-                "review": "Revisar"
+                "review": "Revisar",
+                "guide": "Leer guía"
             },
             "quickLog": {
                 "logTraining": "Registrar entrenamiento",

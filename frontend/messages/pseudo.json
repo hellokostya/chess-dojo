@@ -166,7 +166,8 @@
                 "play": "[T] Play",
                 "spar": "[T] Spar",
                 "annotate": "[T] Annotate",
-                "review": "[T] Review"
+                "review": "[T] Review",
+                "guide": "[T] Read guide"
             },
             "quickLog": {
                 "logTraining": "[T] Log training",

@@ -46,6 +46,7 @@ import { SCHEDULE_CLASSICAL_GAME_TASK_ID, SuggestedTask } from '../suggestedTask
 import { TaskDescription } from '../TaskDescription';
 import { TaskDialog, TaskDialogView } from '../TaskDialog';
 import { taskDisplayName } from '../taskDisplayName';
+import { TaskName } from '../TaskName';
 import { getTaskUnit } from '../taskUnit';
 import { TrainingPlanContext } from '../TrainingPlanTab';
 import { useTrainingPlanProgress } from '../useTrainingPlan';
@@ -445,7 +446,7 @@ function DailyTrainingPlanItem({
                                 <Typography
                                     sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3 }}
                                 >
-                                    {title}
+                                    <TaskName name={title} iconColor='text.secondary' />
                                 </Typography>
                             </Stack>
 

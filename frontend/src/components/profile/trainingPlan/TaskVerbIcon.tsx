@@ -1,5 +1,6 @@
 import { PawnIcon } from '@/style/ChessIcons';
 import {
+    Article,
     EditNote,
     Extension,
     MenuBook,
@@ -31,6 +32,7 @@ const ICONS: Record<TaskVerb, ComponentType<SvgIconProps>> = {
     spar: SwordsIcon,
     annotate: EditNote,
     review: RateReview,
+    guide: Article,
 };
 
 /**

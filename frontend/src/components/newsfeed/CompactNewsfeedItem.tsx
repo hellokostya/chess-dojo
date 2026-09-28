@@ -1,5 +1,6 @@
 import { useRequirement } from '@/api/cache/requirements';
 import { useAuth } from '@/auth/Auth';
+import { TaskName } from '@/components/profile/trainingPlan/TaskName';
 import { getTaskUnit } from '@/components/profile/trainingPlan/taskUnit';
 import { TrainingPlanIcon } from '@/components/profile/trainingPlan/TrainingPlanIcon';
 import { formatTime, RequirementCategory, ScoreboardDisplay } from '@/database/requirement';
@@ -195,7 +196,7 @@ function TaskLine({ category, name }: { category: RequirementCategory; name: str
                 </Typography>
             </Stack>
             <Typography sx={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.35 }}>
-                {name}
+                <TaskName name={name} iconColor='text.secondary' />
             </Typography>
         </Stack>
     );
@@ -285,7 +286,7 @@ function ProgressBody({ entry, simple }: { entry: TimelineEntry; simple?: boolea
                             sx={{ fontSize: '1.1rem', color }}
                         />
                         <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', lineHeight: 1.3 }}>
-                            {entry.requirementName}
+                            <TaskName name={entry.requirementName} iconColor='text.secondary' />
                         </Typography>
                     </Stack>
                 )}
