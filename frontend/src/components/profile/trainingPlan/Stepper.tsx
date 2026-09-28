@@ -1,5 +1,5 @@
 import { Add, Remove } from '@mui/icons-material';
-import { Box, IconButton, InputBase, Typography } from '@mui/material';
+import { alpha, Box, IconButton, InputBase, Theme, Typography } from '@mui/material';
 
 /** The width shared by every stepper, so stacked steppers line up. */
 export const STEPPER_WIDTH = 224;
@@ -21,6 +21,7 @@ export function Stepper({
     incrementLabel,
     warning,
     width = STEPPER_WIDTH,
+    primary,
     'data-testid': dataTestId,
 }: {
     value: string;
@@ -37,18 +38,33 @@ export function Stepper({
     /** Shows the number in the warning colour, e.g. when removing time. */
     warning?: boolean;
     width?: number | string;
+    /** Marks this as the main value to update: taller, with a blue outline and tinted buttons. */
+    primary?: boolean;
     'data-testid'?: string;
 }) {
-    const buttonSx = { width: 40, height: 40, borderRadius: 0, flexShrink: 0 };
+    const size = primary ? 48 : 40;
+    const buttonSx = {
+        width: size,
+        height: size,
+        borderRadius: 0,
+        flexShrink: 0,
+        ...(primary && {
+            color: 'primary.main',
+            backgroundColor: (theme: Theme) => alpha(theme.palette.primary.main, 0.12),
+            '&:hover': {
+                backgroundColor: (theme: Theme) => alpha(theme.palette.primary.main, 0.22),
+            },
+        }),
+    };
     return (
         <Box
             sx={{
                 display: 'flex',
                 alignItems: 'center',
                 width,
-                height: 40,
-                border: 1,
-                borderColor: 'divider',
+                height: size,
+                border: primary ? 1.5 : 1,
+                borderColor: primary ? 'primary.main' : 'divider',
                 borderRadius: 1.5,
                 overflow: 'hidden',
                 '&:focus-within': { borderColor: 'primary.main' },
@@ -58,7 +74,11 @@ export function Stepper({
                 aria-label={decrementLabel}
                 disabled={decrementDisabled}
                 onClick={onDecrement}
-                sx={{ ...buttonSx, borderRight: 1, borderColor: 'divider' }}
+                sx={{
+                    ...buttonSx,
+                    borderRight: 1,
+                    borderColor: primary ? 'primary.main' : 'divider',
+                }}
                 data-testid={dataTestId && `${dataTestId}-decrement`}
             >
                 <Remove fontSize='small' />
@@ -84,6 +104,8 @@ export function Stepper({
                     }}
                     sx={{
                         fontVariantNumeric: 'tabular-nums',
+                        fontSize: primary ? '1.15rem' : undefined,
+                        fontWeight: primary ? 600 : undefined,
                         color: warning ? 'warning.main' : undefined,
                         '& input': { width: `${Math.max(value.length, 1) + 0.5}ch` },
                     }}
@@ -101,7 +123,11 @@ export function Stepper({
                 aria-label={incrementLabel}
                 disabled={incrementDisabled}
                 onClick={onIncrement}
-                sx={{ ...buttonSx, borderLeft: 1, borderColor: 'divider' }}
+                sx={{
+                    ...buttonSx,
+                    borderLeft: 1,
+                    borderColor: primary ? 'primary.main' : 'divider',
+                }}
                 data-testid={dataTestId && `${dataTestId}-increment`}
             >
                 <Add fontSize='small' />

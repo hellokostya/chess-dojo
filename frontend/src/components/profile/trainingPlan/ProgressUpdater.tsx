@@ -230,6 +230,7 @@ export const ProgressUpdater = ({
                                 decrementLabel={tSlider('decrement')}
                                 incrementLabel={tSlider('increment')}
                                 width='100%'
+                                primary
                                 data-testid='task-updater-count'
                             />
                         </Section>
