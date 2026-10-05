@@ -81,6 +81,9 @@ function recursiveMergeLine(
             return;
         }
 
+        if (move.nags?.length) {
+            target.setNags(move.nags, newTargetMove);
+        }
         target.setCommand(
             'dojoComment',
             `${comment.owner.username},${comment.owner.displayName},${comment.id}`,

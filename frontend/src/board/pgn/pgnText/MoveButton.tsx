@@ -34,6 +34,7 @@ import { formatTime } from '../boardTools/underboard/clock/ClockUsage';
 import {
     isUnsavedVariation,
     isVariationSuggestor,
+    markSuggestedVariationDirty,
     saveSuggestedVariation,
 } from '../boardTools/underboard/comments/suggestVariation';
 import { DeletePrompt, useDeletePrompt } from '../boardTools/underboard/DeletePrompt';
@@ -287,6 +288,7 @@ const MoveMenu = ({ anchor, move, onClose }: MoveMenuProps) => {
 
     const onSetNag = (nagSet: Nag[], nag: Nag | null) => {
         chess.setNags(setNagInSet(nag, nagSet, move.nags), move);
+        markSuggestedVariationDirty(user, chess, move);
         setSymbolMenuAnchor(undefined);
         setEvalMenuAnchor(undefined);
         onClose();
