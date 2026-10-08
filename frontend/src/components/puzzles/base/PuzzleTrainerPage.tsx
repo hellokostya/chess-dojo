@@ -73,7 +73,7 @@ export function PuzzleTrainerPage({ client = getPuzzlebaseClient() }: PuzzleTrai
         Promise.resolve()
             .then(() => client.getStatus())
             .then((status) => {
-                if (!cancelled && status.canTrain === false) setCanTrain(false);
+                if (!cancelled && !status.canTrain) setCanTrain(false);
             })
             .catch(() => {
                 // The server decides when training starts.

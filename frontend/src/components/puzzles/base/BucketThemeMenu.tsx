@@ -223,9 +223,7 @@ export function BucketThemeMenu({
                             It is removed from {deleting.bucket}
                             {bucketsListing(taxonomy, deleting.theme) > 1
                                 ? ', and stays under the other buckets that list it.'
-                                : ', and from the ' +
-                                  (counts.themes[deleting.theme] ?? 0) +
-                                  ' puzzle(s) that have it. This cannot be undone.'}{' '}
+                                : `, and from the ${counts.themes[deleting.theme] ?? 0} puzzle(s) that have it. This cannot be undone.`}{' '}
                             The deletion is written to the admin log.
                         </Typography>
                     </DialogContent>
