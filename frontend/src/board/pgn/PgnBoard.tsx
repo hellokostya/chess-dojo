@@ -82,12 +82,18 @@ export interface PgnBoardApi {
 
 export interface PgnBoardSlots {
     moveButtonExtras?: React.JSXElementConstructor<MoveButtonProps>;
+    /** Shown above the engine and the PGN text, at the top of the PGN panel. */
+    beforePgnText?: JSX.Element;
     afterPgnText?: JSX.Element;
+    /** Pinned under the PGN text, outside its scrolling, so it is always in view. */
+    pgnFooter?: JSX.Element;
 }
 
 export interface PgnBoardSlotProps {
     pgnText?: {
         hideResult?: boolean;
+        /** Keep the result, but leave out the line above it. */
+        hideResultDivider?: boolean;
     };
     board?: {
         onMove?: onMoveFunc;
@@ -102,6 +108,8 @@ interface PgnBoardProps extends ChessConfig {
     initialRightTab?: string;
     tabStorageKeyPrefix?: string;
     sidePanelTabs?: DefaultUnderboardTab[];
+    /** Start with the board as big as the window allows, with narrower side panels. */
+    largeBoard?: boolean;
     pgn?: string;
     fen?: string;
     showPlayerHeaders?: boolean;
@@ -121,6 +129,7 @@ const PgnBoard = forwardRef<PgnBoardApi, PgnBoardProps>(
             initialRightTab,
             tabStorageKeyPrefix,
             sidePanelTabs,
+            largeBoard,
             pgn,
             fen,
             showPlayerHeaders = true,
@@ -384,6 +393,7 @@ const PgnBoard = forwardRef<PgnBoardApi, PgnBoardProps>(
                                     initialRightTab,
                                     tabStorageKeyPrefix,
                                     sidePanelTabs,
+                                    largeBoard,
                                     showPlayerHeaders,
                                     pgn,
                                     fen,

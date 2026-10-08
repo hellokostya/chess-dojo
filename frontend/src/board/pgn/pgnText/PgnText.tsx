@@ -39,6 +39,7 @@ const PgnTextBody = () => {
 
     return (
         <>
+            {slots?.beforePgnText}
             {!config?.disableEngine && !hideEngine && !solitaire?.enabled && <EngineSection />}
             <Stack
                 ref={ref}
@@ -61,6 +62,7 @@ const PgnTextBody = () => {
                     <SolitaireAfterPgnText />
                 ) : undefined}
             </Stack>
+            {slots?.pgnFooter}
         </>
     );
 };
