@@ -6,3 +6,5 @@ export const DIFFICULTY_KEY = 'puzzles.difficulty';
 export const THEME_KEY = 'puzzles.theme';
 export const CORRECT_SOUND_KEY = 'puzzles.correctSound';
 export const INCORRECT_SOUND_KEY = 'puzzles.incorrectSound';
+/** Which sound plays when a puzzle is solved. See puzzleSounds.ts. */
+export const SOLVED_SOUND_KEY = 'puzzles.solvedSound';
