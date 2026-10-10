@@ -345,6 +345,7 @@ export function TrainSetup({
                                     lineHeight: 1.4,
                                     display: 'block',
                                     textAlign: 'center',
+                                    mb: 1,
                                 }}
                             >
                                 Session length
