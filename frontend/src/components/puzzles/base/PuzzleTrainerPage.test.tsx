@@ -85,7 +85,7 @@ function setup(overrides: Partial<PuzzlebaseClient> = {}) {
 const start = () => fireEvent.click(screen.getByRole('button', { name: 'Start training' }));
 
 async function chooseFocus(label: string) {
-    const input = screen.getByLabelText('Focus on');
+    const input = screen.getByLabelText('Themes');
     fireEvent.mouseDown(input);
     fireEvent.click(await screen.findByRole('option', { name: label }));
 }
@@ -141,9 +141,9 @@ describe('PuzzleTrainerPage setup', () => {
         expect((mixed.train.mock.calls as unknown[][])[0][0]).not.toHaveProperty('bucket');
     });
 
-    it('puts the focus menu above the puzzle rating', () => {
+    it('puts the themes menu above the puzzle rating', () => {
         setup();
-        const focus = screen.getByLabelText('Focus on');
+        const focus = screen.getByLabelText('Themes');
         const rating = screen.getByText('Puzzle rating');
         expect(
             focus.compareDocumentPosition(rating) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -193,7 +193,7 @@ describe('PuzzleTrainerPage setup', () => {
 
     it('lets the member focus on a theme', async () => {
         const { train } = setup();
-        await waitFor(() => expect(screen.getByLabelText('Focus on')).toBeTruthy());
+        await waitFor(() => expect(screen.getByLabelText('Themes')).toBeTruthy());
         await chooseFocus('Fork');
         start();
         await waitFor(() => expect(train).toHaveBeenCalled());

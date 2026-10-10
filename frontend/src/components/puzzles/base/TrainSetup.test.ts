@@ -7,9 +7,9 @@ const labels = (type: Parameters<typeof focusOptions>[1]) =>
     focusOptions(taxonomy, type).map((o) => `${o.kind}:${o.group}:${o.label}`);
 
 describe('focusOptions', () => {
-    it('offers anything, the phases and the tactics themes for tactics', () => {
+    it('offers all themes, the phases and the tactics themes for tactics', () => {
         const options = labels('Tactics');
-        expect(options[0]).toBe('any:All puzzles:Anything');
+        expect(options[0]).toBe('any:All puzzles:All Themes');
         expect(options).toContain('bucket:Endgame:Endgame');
         expect(options).toContain('theme:Tactics:Fork');
         expect(options).not.toContain('theme:Strategy:Outpost');
@@ -30,7 +30,7 @@ describe('focusOptions', () => {
 });
 
 describe('focusQuery', () => {
-    const anything = { kind: 'any' as const, label: 'Anything', group: 'All puzzles' };
+    const anything = { kind: 'any' as const, label: 'All Themes', group: 'All puzzles' };
 
     it('asks for the type, with a phase or a theme if there is one', () => {
         expect(focusQuery('Tactics', anything)).toEqual({ bucket: 'Tactics' });

@@ -2,7 +2,7 @@
 
 import { PuzzlebaseTaxonomy } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
 import { TrainQuery } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
-import { History, PlayArrow } from '@mui/icons-material';
+import { Bolt, History, PlayArrow, Psychology, Shuffle } from '@mui/icons-material';
 import {
     Alert,
     Autocomplete,
@@ -18,8 +18,8 @@ import {
     Typography,
 } from '@mui/material';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { bucketColor, bucketColorDeep } from './bucketStyle';
+import { ReactNode, useMemo, useState } from 'react';
+import { bucketColor } from './bucketStyle';
 import { sortThemes } from './BucketThemeMenu';
 import {
     ALL_RATINGS,
@@ -35,6 +35,13 @@ export type TrainType = 'Tactics' | 'Strategy' | 'Mixed';
 
 const TRAIN_TYPES: TrainType[] = ['Tactics', 'Strategy', 'Mixed'];
 
+/** How each type looks on its button: an icon and a color deep enough for white text. */
+const TYPE_STYLE: Record<TrainType, { color: string; icon: ReactNode }> = {
+    Tactics: { color: '#2e7d32', icon: <Bolt /> },
+    Strategy: { color: '#b88a00', icon: <Psychology /> },
+    Mixed: { color: '#e65100', icon: <Shuffle /> },
+};
+
 /** One thing the member can choose to focus on: anything, a phase of the game, or one theme. */
 interface FocusOption {
     kind: 'any' | 'bucket' | 'theme';
@@ -43,13 +50,13 @@ interface FocusOption {
     group: string;
 }
 
-const ANYTHING: FocusOption = { kind: 'any', label: 'Anything', group: 'All puzzles' };
+const ANYTHING: FocusOption = { kind: 'any', label: 'All Themes', group: 'All puzzles' };
 
 /** The buckets that say what kind of puzzle it is. The others are phases of the game. */
 const TYPE_BUCKETS = new Set(['Tactics', 'Strategy']);
 
 /**
- * What can be focused on for a type of puzzle: anything, each phase of the game, and the themes.
+ * What can be focused on for a type of puzzle: all themes, each phase of the game, and the themes.
  * The type itself is chosen with the big buttons, so it is not offered again, and with Tactics
  * chosen the themes that only belong to Strategy are left out, and the other way around.
  */
@@ -160,18 +167,20 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                                     value={option}
                                     sx={{
                                         py: 2.5,
+                                        gap: 1,
                                         fontSize: '1.15rem',
                                         fontWeight: 'bold',
                                         textTransform: 'none',
+                                        // Unselected, the icon carries the color.
+                                        '& svg': { color: TYPE_STYLE[option].color },
                                         '&.Mui-selected, &.Mui-selected:hover': {
-                                            bgcolor:
-                                                option === 'Mixed'
-                                                    ? 'primary.main'
-                                                    : bucketColorDeep(option),
+                                            bgcolor: TYPE_STYLE[option].color,
                                             color: '#fff',
+                                            '& svg': { color: '#fff' },
                                         },
                                     }}
                                 >
+                                    {TYPE_STYLE[option].icon}
                                     {option}
                                 </ToggleButton>
                             ))}
@@ -213,7 +222,7 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                                     </li>
                                 );
                             }}
-                            renderInput={(params) => <TextField {...params} label='Focus on' />}
+                            renderInput={(params) => <TextField {...params} label='Themes' />}
                         />
 
                         <Box>
