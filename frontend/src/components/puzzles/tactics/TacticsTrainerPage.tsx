@@ -779,12 +779,23 @@ export function TacticsTrainerPage({
                         ...(reviewPgn ? {} : { board: { onMove: handleBoardMove } }),
                     }}
                     slots={
-                        reviewPgn && (renderPuzzleInfo || renderPuzzleFooter)
-                            ? {
-                                  beforePgnText: <>{renderPuzzleInfo?.(puzzle)}</>,
-                                  pgnFooter: <>{renderPuzzleFooter?.(puzzle)}</>,
+                        reviewPgn
+                            ? renderPuzzleInfo || renderPuzzleFooter
+                                ? {
+                                      beforePgnText: <>{renderPuzzleInfo?.(puzzle)}</>,
+                                      pgnFooter: <>{renderPuzzleFooter?.(puzzle)}</>,
+                                  }
+                                : undefined
+                            : {
+                                  // While solving, a sticker under the notation says who is to play.
+                                  pgnFooter: (
+                                      <Box
+                                          sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
+                                      >
+                                          <SideToPlay color={puzzle.userColor} large />
+                                      </Box>
+                                  ),
                               }
-                            : undefined
                     }
                     underboardTabs={[
                         {
@@ -1110,7 +1121,7 @@ function SessionClock({ elapsed, limit }: { elapsed: number; limit?: number }) {
  * plate with a dark shadow, Black to play a black plate with a white glow, so the colors show
  * the answer before the words are read.
  */
-function SideToPlay({ color }: { color: 'white' | 'black' }) {
+function SideToPlay({ color, large }: { color: 'white' | 'black'; large?: boolean }) {
     const white = color === 'white';
     return (
         <Stack
@@ -1119,9 +1130,11 @@ function SideToPlay({ color }: { color: 'white' | 'black' }) {
             sx={{
                 alignItems: 'center',
                 gap: 1,
-                px: 1.5,
-                py: 0.5,
+                px: large ? 2.5 : 1.5,
+                py: large ? 1 : 0.5,
                 borderRadius: 1.5,
+                // A sticker stuck on a little crooked.
+                transform: large ? 'rotate(-2deg)' : undefined,
                 bgcolor: white ? '#f4f4f4' : '#0b0b0b',
                 color: white ? '#111' : '#fff',
                 border: '2px solid',
@@ -1133,8 +1146,8 @@ function SideToPlay({ color }: { color: 'white' | 'black' }) {
         >
             <Box
                 sx={{
-                    width: 12,
-                    height: 12,
+                    width: large ? 16 : 12,
+                    height: large ? 16 : 12,
                     borderRadius: '50%',
                     bgcolor: white ? '#fff' : '#000',
                     border: '2px solid',
@@ -1144,7 +1157,12 @@ function SideToPlay({ color }: { color: 'white' | 'black' }) {
             />
             <Typography
                 component='span'
-                sx={{ fontSize: '1rem', fontWeight: 800, lineHeight: 1.2, whiteSpace: 'nowrap' }}
+                sx={{
+                    fontSize: large ? '1.35rem' : '1rem',
+                    fontWeight: 800,
+                    lineHeight: 1.2,
+                    whiteSpace: 'nowrap',
+                }}
             >
                 {white ? 'White' : 'Black'} to play
             </Typography>
