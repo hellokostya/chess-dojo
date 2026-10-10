@@ -176,10 +176,10 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                                         textTransform: 'none',
                                         color: 'text.primary',
                                         // Colored even when not selected: a tint and a colored edge.
-                                        bgcolor: alpha(TYPE_STYLE[option].color, 0.22),
+                                        bgcolor: alpha(TYPE_STYLE[option].color, 0.34),
                                         borderColor: alpha(TYPE_STYLE[option].color, 0.6),
                                         '&:hover': {
-                                            bgcolor: alpha(TYPE_STYLE[option].color, 0.34),
+                                            bgcolor: alpha(TYPE_STYLE[option].color, 0.48),
                                         },
                                         '& svg': {
                                             color: TYPE_STYLE[option].color,
