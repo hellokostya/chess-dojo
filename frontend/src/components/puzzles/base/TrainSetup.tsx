@@ -21,7 +21,7 @@ import {
     ToggleButtonGroup,
     Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, darken } from '@mui/material/styles';
 import Link from 'next/link';
 import { ReactNode, useMemo, useState } from 'react';
 import { BookPile } from './BookPile';
@@ -187,42 +187,63 @@ export function TrainSetup({
                             value={type}
                             onChange={(_, value: TrainType | null) => value && chooseType(value)}
                             aria-label='Type of puzzle'
+                            sx={{ gap: 1.5 }}
                         >
-                            {TRAIN_TYPES.map((option) => (
-                                <ToggleButton
-                                    key={option}
-                                    value={option}
-                                    sx={{
-                                        // Square boxes with the name on top and the icon under it.
-                                        aspectRatio: '1 / 1',
-                                        flexDirection: 'column',
-                                        gap: 1,
-                                        fontSize: '1.15rem',
-                                        fontWeight: 'bold',
-                                        textTransform: 'none',
-                                        color: 'text.primary',
-                                        // Colored even when not selected: a tint and a colored edge.
-                                        bgcolor: alpha(TYPE_STYLE[option].color, 0.34),
-                                        borderColor: alpha(TYPE_STYLE[option].color, 0.6),
-                                        '&:hover': {
-                                            bgcolor: alpha(TYPE_STYLE[option].color, 0.48),
-                                        },
-                                        '& svg': {
-                                            color: TYPE_STYLE[option].color,
-                                            fontSize: '3.5rem',
-                                        },
-                                        // Selected, the box fills with the color.
-                                        '&.Mui-selected, &.Mui-selected:hover': {
-                                            bgcolor: TYPE_STYLE[option].color,
-                                            color: '#fff',
-                                            '& svg': { color: '#fff' },
-                                        },
-                                    }}
-                                >
-                                    {option}
-                                    {TYPE_STYLE[option].icon}
-                                </ToggleButton>
-                            ))}
+                            {TRAIN_TYPES.map((option) => {
+                                const { color, icon } = TYPE_STYLE[option];
+                                return (
+                                    <ToggleButton
+                                        key={option}
+                                        value={option}
+                                        sx={{
+                                            // The group squares off its buttons; this makes them separate,
+                                            // rounded cards. The doubled & wins over the group's rules.
+                                            '&&': {
+                                                m: 0,
+                                                borderRadius: '18px',
+                                                border: '2px solid',
+                                                borderColor: alpha(color, 0.55),
+                                            },
+                                            // Square, with the name and the icon in the middle.
+                                            aspectRatio: '1 / 1',
+                                            flexDirection: 'column',
+                                            justifyContent: 'center',
+                                            gap: 1.5,
+                                            textAlign: 'center',
+                                            textTransform: 'none',
+                                            color: 'text.primary',
+                                            fontSize: { xs: '1.35rem', sm: '1.75rem' },
+                                            fontWeight: 800,
+                                            letterSpacing: 0.3,
+                                            lineHeight: 1.1,
+                                            // Colored even when not selected: a tint that fades down.
+                                            background: `linear-gradient(160deg, ${alpha(color, 0.4)}, ${alpha(color, 0.14)})`,
+                                            transition:
+                                                'transform 150ms, box-shadow 150ms, background 150ms',
+                                            '& svg': {
+                                                color,
+                                                fontSize: { xs: '3rem', sm: '4rem' },
+                                                filter: `drop-shadow(0 2px 4px ${alpha(color, 0.35)})`,
+                                            },
+                                            '&:hover': {
+                                                transform: 'translateY(-2px)',
+                                                background: `linear-gradient(160deg, ${alpha(color, 0.52)}, ${alpha(color, 0.22)})`,
+                                            },
+                                            // Selected, the card fills with the color and lifts.
+                                            '&.Mui-selected, &.Mui-selected:hover': {
+                                                background: `linear-gradient(160deg, ${color}, ${darken(color, 0.28)})`,
+                                                color: '#fff',
+                                                transform: 'translateY(-3px)',
+                                                boxShadow: `0 10px 24px ${alpha(color, 0.45)}`,
+                                                '& svg': { color: '#fff', filter: 'none' },
+                                            },
+                                        }}
+                                    >
+                                        {option}
+                                        {icon}
+                                    </ToggleButton>
+                                );
+                            })}
                         </ToggleButtonGroup>
 
                         <Autocomplete
