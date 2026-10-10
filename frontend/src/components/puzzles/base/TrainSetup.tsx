@@ -2,7 +2,7 @@
 
 import { PuzzlebaseTaxonomy } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
 import { TrainQuery } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
-import { Bolt, History, PlayArrow, Psychology } from '@mui/icons-material';
+import { Bolt, CompareArrows, History, PlayArrow } from '@mui/icons-material';
 import {
     Alert,
     Autocomplete,
@@ -20,6 +20,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import Link from 'next/link';
 import { ReactNode, useMemo, useState } from 'react';
+import { BookPile } from './BookPile';
 import { bucketColor } from './bucketStyle';
 import { sortThemes } from './BucketThemeMenu';
 import {
@@ -39,7 +40,7 @@ const TRAIN_TYPES: TrainType[] = ['Tactics', 'Strategy', 'Mixed'];
 /** How each type looks on its button: an icon and a color deep enough for white text. */
 const TYPE_STYLE: Record<TrainType, { color: string; icon: ReactNode }> = {
     Tactics: { color: '#2e7d32', icon: <Bolt /> },
-    Strategy: { color: '#b88a00', icon: <Psychology /> },
+    Strategy: { color: '#b88a00', icon: <BookPile /> },
     Mixed: { color: '#e65100', icon: <CompareArrows /> },
 };
 
