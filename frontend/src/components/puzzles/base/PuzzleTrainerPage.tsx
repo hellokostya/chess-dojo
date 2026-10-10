@@ -252,7 +252,12 @@ export function PuzzleTrainerPage({ client = getPuzzlebaseClient() }: PuzzleTrai
                     onPuzzleFinished={onPuzzleFinished}
                     renderPuzzleInfo={(puzzle) =>
                         puzzle.info ? (
-                            <PuzzleInfoPanel puzzle={puzzle.info} taxonomy={taxonomy} hideHeading />
+                            <PuzzleInfoPanel
+                                puzzle={puzzle.info}
+                                taxonomy={taxonomy}
+                                hideHeading
+                                plain
+                            />
                         ) : undefined
                     }
                     renderPuzzleFooter={(puzzle) => (

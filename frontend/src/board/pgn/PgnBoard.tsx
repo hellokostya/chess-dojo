@@ -87,6 +87,8 @@ export interface PgnBoardSlots {
     afterPgnText?: JSX.Element;
     /** Pinned under the PGN text, outside its scrolling, so it is always in view. */
     pgnFooter?: JSX.Element;
+    /** Shown just to the right of the board, halfway down it. */
+    besideBoard?: JSX.Element;
 }
 
 export interface PgnBoardSlotProps {

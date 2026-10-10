@@ -782,19 +782,30 @@ export function TacticsTrainerPage({
                         reviewPgn
                             ? renderPuzzleInfo || renderPuzzleFooter
                                 ? {
-                                      beforePgnText: <>{renderPuzzleInfo?.(puzzle)}</>,
-                                      pgnFooter: <>{renderPuzzleFooter?.(puzzle)}</>,
+                                      // Stockfish and the notation come first, then the result.
+                                      // Under it go the puzzle's details, and under those its tags.
+                                      pgnFooter: (
+                                          <>
+                                              {renderPuzzleInfo && (
+                                                  <Box
+                                                      sx={{
+                                                          borderTop: 1,
+                                                          borderColor: 'divider',
+                                                          pb: 2,
+                                                          flexShrink: 0,
+                                                      }}
+                                                  >
+                                                      {renderPuzzleInfo(puzzle)}
+                                                  </Box>
+                                              )}
+                                              {renderPuzzleFooter?.(puzzle)}
+                                          </>
+                                      ),
                                   }
                                 : undefined
                             : {
-                                  // While solving, a sticker under the notation says who is to play.
-                                  pgnFooter: (
-                                      <Box
-                                          sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
-                                      >
-                                          <SideToPlay color={puzzle.userColor} large />
-                                      </Box>
-                                  ),
+                                  // While solving, a sticker beside the board says who is to play.
+                                  besideBoard: <SideToPlay color={puzzle.userColor} stacked />,
                               }
                     }
                     underboardTabs={[
@@ -1121,20 +1132,25 @@ function SessionClock({ elapsed, limit }: { elapsed: number; limit?: number }) {
  * plate with a dark shadow, Black to play a black plate with a white glow, so the colors show
  * the answer before the words are read.
  */
-function SideToPlay({ color, large }: { color: 'white' | 'black'; large?: boolean }) {
+function SideToPlay({
+    color,
+    stacked,
+}: {
+    color: 'white' | 'black';
+    /** The two words on two lines, with the dot above, for a narrow sticker beside the board. */
+    stacked?: boolean;
+}) {
     const white = color === 'white';
     return (
         <Stack
-            direction='row'
+            direction={stacked ? 'column' : 'row'}
             aria-label={`${white ? 'White' : 'Black'} to play`}
             sx={{
                 alignItems: 'center',
-                gap: 1,
-                px: large ? 2.5 : 1.5,
-                py: large ? 1 : 0.5,
+                gap: stacked ? 0.5 : 1,
+                px: stacked ? 1.25 : 1.5,
+                py: stacked ? 1 : 0.5,
                 borderRadius: 1.5,
-                // A sticker stuck on a little crooked.
-                transform: large ? 'rotate(-2deg)' : undefined,
                 bgcolor: white ? '#f4f4f4' : '#0b0b0b',
                 color: white ? '#111' : '#fff',
                 border: '2px solid',
@@ -1146,8 +1162,8 @@ function SideToPlay({ color, large }: { color: 'white' | 'black'; large?: boolea
         >
             <Box
                 sx={{
-                    width: large ? 16 : 12,
-                    height: large ? 16 : 12,
+                    width: stacked ? 16 : 12,
+                    height: stacked ? 16 : 12,
                     borderRadius: '50%',
                     bgcolor: white ? '#fff' : '#000',
                     border: '2px solid',
@@ -1158,13 +1174,15 @@ function SideToPlay({ color, large }: { color: 'white' | 'black'; large?: boolea
             <Typography
                 component='span'
                 sx={{
-                    fontSize: large ? '1.35rem' : '1rem',
+                    fontSize: '1rem',
                     fontWeight: 800,
                     lineHeight: 1.2,
-                    whiteSpace: 'nowrap',
+                    whiteSpace: stacked ? 'normal' : 'nowrap',
+                    textAlign: 'center',
                 }}
             >
-                {white ? 'White' : 'Black'} to play
+                {white ? 'White' : 'Black'}
+                {stacked ? <br /> : ' '}to play
             </Typography>
         </Stack>
     );
