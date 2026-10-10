@@ -8,7 +8,7 @@ import {
     TrainingTagSet,
     TrainQuery,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
-import { History, PlayArrow } from '@mui/icons-material';
+import { History, LocalOffer, PlayArrow } from '@mui/icons-material';
 import {
     Alert,
     Autocomplete,
@@ -16,6 +16,7 @@ import {
     Button,
     Container,
     Divider,
+    InputAdornment,
     Paper,
     Slider,
     Stack,
@@ -27,6 +28,7 @@ import {
 import { alpha, darken } from '@mui/material/styles';
 import Link from 'next/link';
 import { ReactNode, useMemo, useState } from 'react';
+import { bucketColor } from './bucketStyle';
 import { sortThemes } from './BucketThemeMenu';
 import {
     ALL_RATINGS,
@@ -267,6 +269,33 @@ export function TrainSetup({
                                 a.kind === b.kind && a.label === b.label && a.group === b.group
                             }
                             disableClearable
+                            // The menu is rounded like the cards, and each group of themes is headed
+                            // by its bucket's color.
+                            slotProps={{ paper: { sx: { borderRadius: '18px', mt: 0.5 } } }}
+                            renderGroup={(params) => (
+                                <li key={params.key}>
+                                    <Typography
+                                        sx={{
+                                            px: 2,
+                                            py: 0.75,
+                                            fontWeight: 800,
+                                            fontSize: '0.8rem',
+                                            letterSpacing: 0.6,
+                                            textTransform: 'uppercase',
+                                            color: bucketColor(params.group),
+                                            borderBottom: 1,
+                                            borderColor: 'divider',
+                                            position: 'sticky',
+                                            top: 0,
+                                            bgcolor: 'background.paper',
+                                            zIndex: 1,
+                                        }}
+                                    >
+                                        {params.group}
+                                    </Typography>
+                                    <ul style={{ padding: 0 }}>{params.children}</ul>
+                                </li>
+                            )}
                             renderOption={(props, option) => {
                                 const { key, ...rest } = props as typeof props & { key: string };
                                 return (
@@ -283,7 +312,45 @@ export function TrainSetup({
                                     </li>
                                 );
                             }}
-                            renderInput={(params) => <TextField {...params} label='Themes' />}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label='Themes'
+                                    slotProps={{
+                                        ...params.slotProps,
+                                        input: {
+                                            ...params.slotProps.input,
+                                            startAdornment: (
+                                                <>
+                                                    <InputAdornment position='start'>
+                                                        <LocalOffer color='primary' />
+                                                    </InputAdornment>
+                                                    {params.slotProps.input.startAdornment}
+                                                </>
+                                            ),
+                                        },
+                                    }}
+                                    sx={{
+                                        // Rounded, tinted and edged like the cards above it.
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: '18px',
+                                            fontWeight: 700,
+                                            fontSize: '1.1rem',
+                                            py: 0.75,
+                                            background: (theme) =>
+                                                `linear-gradient(160deg, ${alpha(theme.palette.primary.main, 0.2)}, ${alpha(theme.palette.primary.main, 0.06)})`,
+                                            '& fieldset': {
+                                                borderWidth: 2,
+                                                borderColor: (theme) =>
+                                                    alpha(theme.palette.primary.main, 0.5),
+                                            },
+                                            '&:hover fieldset, &.Mui-focused fieldset': {
+                                                borderColor: 'primary.main',
+                                            },
+                                        },
+                                    }}
+                                />
+                            )}
                         />
 
                         <Box>
