@@ -17,6 +17,7 @@ import {
     ToggleButtonGroup,
     Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import Link from 'next/link';
 import { ReactNode, useMemo, useState } from 'react';
 import { bucketColor } from './bucketStyle';
@@ -166,16 +167,25 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                                     key={option}
                                     value={option}
                                     sx={{
-                                        py: 2.5,
+                                        // Square boxes with the icon above the name.
+                                        aspectRatio: '1 / 1',
+                                        flexDirection: 'column',
                                         gap: 1,
                                         fontSize: '1.15rem',
                                         fontWeight: 'bold',
                                         textTransform: 'none',
-                                        // Unselected, the icon carries the color.
+                                        color: 'text.primary',
+                                        // Colored even when not selected: a tint and a colored edge.
+                                        bgcolor: alpha(TYPE_STYLE[option].color, 0.22),
+                                        borderColor: alpha(TYPE_STYLE[option].color, 0.6),
+                                        '&:hover': {
+                                            bgcolor: alpha(TYPE_STYLE[option].color, 0.34),
+                                        },
                                         '& svg': {
                                             color: TYPE_STYLE[option].color,
-                                            fontSize: '2rem',
+                                            fontSize: '3.5rem',
                                         },
+                                        // Selected, the box fills with the color.
                                         '&.Mui-selected, &.Mui-selected:hover': {
                                             bgcolor: TYPE_STYLE[option].color,
                                             color: '#fff',
