@@ -172,7 +172,10 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                                         fontWeight: 'bold',
                                         textTransform: 'none',
                                         // Unselected, the icon carries the color.
-                                        '& svg': { color: TYPE_STYLE[option].color },
+                                        '& svg': {
+                                            color: TYPE_STYLE[option].color,
+                                            fontSize: '2rem',
+                                        },
                                         '&.Mui-selected, &.Mui-selected:hover': {
                                             bgcolor: TYPE_STYLE[option].color,
                                             color: '#fff',
