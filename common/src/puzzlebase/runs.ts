@@ -264,7 +264,7 @@ export type RunsRequest = z.infer<typeof RunsRequestSchema>;
 
 /** Verifies a request for puzzles to train on. Numbers arrive as text in a query string. */
 export const TrainRequestSchema = z.object({
-    /** Only puzzles with this bucket. */
+    /** Only puzzles with this bucket. Several, separated by commas, means all of them. */
     bucket: z.string().optional(),
     /** Only puzzles with this theme. */
     theme: z.string().optional(),
@@ -290,10 +290,11 @@ export function pickTrainingPuzzles(
     lastSeen: Record<string, string> = {},
 ): PuzzlebasePuzzle[] {
     const excluded = new Set((request.exclude ?? '').split(',').filter(Boolean));
+    const buckets = (request.bucket ?? '').split(',').filter(Boolean);
     const matches = puzzles.filter(
         (p) =>
             !excluded.has(p.id) &&
-            (request.bucket === undefined || p.buckets.includes(request.bucket)) &&
+            buckets.every((bucket) => p.buckets.includes(bucket)) &&
             (request.theme === undefined || p.themes.includes(request.theme)) &&
             (request.minRating === undefined || p.rating >= request.minRating) &&
             (request.maxRating === undefined || p.rating <= request.maxRating),
@@ -312,7 +313,7 @@ export function pickTrainingPuzzles(
 
 /** What a person asks for when they start training. Every part is optional. */
 export interface TrainQuery {
-    /** Only puzzles with this bucket. */
+    /** Only puzzles with this bucket. Several, separated by commas, means all of them. */
     bucket?: string;
     /** Only puzzles with this theme. */
     theme?: string;

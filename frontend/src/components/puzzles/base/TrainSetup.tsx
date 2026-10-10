@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { bucketColor } from './bucketStyle';
+import { bucketColor, bucketColorDeep } from './bucketStyle';
 import { sortThemes } from './BucketThemeMenu';
 import {
     ALL_RATINGS,
@@ -30,7 +30,12 @@ import {
     SessionLength,
 } from './trainingPuzzles';
 
-/** One thing the member can choose to focus on: anything, a bucket, or one theme. */
+/** What kind of puzzles to train on: one type of puzzle, or both. */
+export type TrainType = 'Tactics' | 'Strategy' | 'Mixed';
+
+const TRAIN_TYPES: TrainType[] = ['Tactics', 'Strategy', 'Mixed'];
+
+/** One thing the member can choose to focus on: anything, a phase of the game, or one theme. */
 interface FocusOption {
     kind: 'any' | 'bucket' | 'theme';
     label: string;
@@ -39,6 +44,48 @@ interface FocusOption {
 }
 
 const ANYTHING: FocusOption = { kind: 'any', label: 'Anything', group: 'All puzzles' };
+
+/** The buckets that say what kind of puzzle it is. The others are phases of the game. */
+const TYPE_BUCKETS = new Set(['Tactics', 'Strategy']);
+
+/**
+ * What can be focused on for a type of puzzle: anything, each phase of the game, and the themes.
+ * The type itself is chosen with the big buttons, so it is not offered again, and with Tactics
+ * chosen the themes that only belong to Strategy are left out, and the other way around.
+ */
+export function focusOptions(taxonomy: PuzzlebaseTaxonomy, type: TrainType): FocusOption[] {
+    const options: FocusOption[] = [ANYTHING];
+    for (const [bucket, themes] of Object.entries(taxonomy.buckets)) {
+        const isType = TYPE_BUCKETS.has(bucket);
+        if (isType && type !== 'Mixed' && bucket !== type) continue;
+        if (!isType) {
+            options.push({ kind: 'bucket', label: bucket, group: bucket });
+        }
+        options.push(
+            ...sortThemes(themes).map((theme) => ({
+                kind: 'theme' as const,
+                label: theme,
+                group: bucket,
+            })),
+        );
+    }
+    return options;
+}
+
+/** The query for a type of puzzle and a focus: the buckets a puzzle must have, and its theme. */
+export function focusQuery(
+    type: TrainType,
+    focus: FocusOption,
+): Pick<TrainQuery, 'bucket' | 'theme'> {
+    const buckets = [
+        type === 'Mixed' ? undefined : type,
+        focus.kind === 'bucket' ? focus.label : undefined,
+    ].filter((bucket): bucket is string => bucket !== undefined);
+    return {
+        ...(buckets.length > 0 ? { bucket: buckets.join(',') } : {}),
+        ...(focus.kind === 'theme' ? { theme: focus.label } : {}),
+    };
+}
 
 interface TrainSetupProps {
     taxonomy: PuzzlebaseTaxonomy;
@@ -52,30 +99,27 @@ interface TrainSetupProps {
 }
 
 /**
- * Where a member chooses what to train on: how hard the puzzles are, whether to focus on one
- * bucket or theme, and for how long. The rating range starts as all ratings.
+ * Where a member chooses what to train on: tactics, strategy or a mix, whether to focus on one
+ * phase or theme, how hard the puzzles are, and for how long. The rating range starts as all ratings.
  */
 export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: TrainSetupProps) {
     const aroundYou = useMemo(() => defaultRatingWindow(userRating), [userRating]);
     const [range, setRange] = useState<[number, number]>(ALL_RATINGS);
+    const [type, setType] = useState<TrainType>('Tactics');
     const [focus, setFocus] = useState<FocusOption>(ANYTHING);
     const [length, setLength] = useState<SessionLength>(20);
     const allRatings = range[0] === ALL_RATINGS[0] && range[1] === ALL_RATINGS[1];
 
-    const options = useMemo<FocusOption[]>(
-        () => [
-            ANYTHING,
-            ...Object.entries(taxonomy.buckets).flatMap(([bucket, themes]) => [
-                { kind: 'bucket' as const, label: bucket, group: bucket },
-                ...sortThemes(themes).map((theme) => ({
-                    kind: 'theme' as const,
-                    label: theme,
-                    group: bucket,
-                })),
-            ]),
-        ],
-        [taxonomy],
-    );
+    const options = useMemo(() => focusOptions(taxonomy, type), [taxonomy, type]);
+
+    /** Picks a type of puzzle. A focus that does not belong to it is dropped. */
+    const chooseType = (next: TrainType) => {
+        setType(next);
+        const stillThere = focusOptions(taxonomy, next).some(
+            (o) => o.kind === focus.kind && o.label === focus.label && o.group === focus.group,
+        );
+        if (!stillThere) setFocus(ANYTHING);
+    };
 
     const start = () =>
         onStart(
@@ -83,8 +127,7 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                 // All ratings leaves the range open, so puzzles above the slider are included.
                 ...(allRatings ? {} : { minRating: range[0], maxRating: range[1] }),
                 count: PUZZLES_PER_BATCH,
-                ...(focus.kind === 'bucket' ? { bucket: focus.label } : {}),
-                ...(focus.kind === 'theme' ? { theme: focus.label } : {}),
+                ...focusQuery(type, focus),
             },
             length,
         );
@@ -104,6 +147,75 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
 
                 <Paper variant='outlined' sx={{ p: 3 }}>
                     <Stack sx={{ gap: 3 }}>
+                        <ToggleButtonGroup
+                            exclusive
+                            fullWidth
+                            value={type}
+                            onChange={(_, value: TrainType | null) => value && chooseType(value)}
+                            aria-label='Type of puzzle'
+                        >
+                            {TRAIN_TYPES.map((option) => (
+                                <ToggleButton
+                                    key={option}
+                                    value={option}
+                                    sx={{
+                                        py: 2.5,
+                                        fontSize: '1.15rem',
+                                        fontWeight: 'bold',
+                                        textTransform: 'none',
+                                        '&.Mui-selected, &.Mui-selected:hover': {
+                                            bgcolor:
+                                                option === 'Mixed'
+                                                    ? 'primary.main'
+                                                    : bucketColorDeep(option),
+                                            color: '#fff',
+                                        },
+                                    }}
+                                >
+                                    {option}
+                                </ToggleButton>
+                            ))}
+                        </ToggleButtonGroup>
+
+                        <Autocomplete
+                            options={options}
+                            value={focus}
+                            onChange={(_, value) => setFocus(value ?? ANYTHING)}
+                            groupBy={(option) => option.group}
+                            getOptionLabel={(option) => option.label}
+                            // A theme listed under several buckets appears under each of them.
+                            getOptionKey={(option) =>
+                                `${option.group}|${option.kind}|${option.label}`
+                            }
+                            isOptionEqualToValue={(a, b) =>
+                                a.kind === b.kind && a.label === b.label && a.group === b.group
+                            }
+                            disableClearable
+                            renderOption={(props, option) => {
+                                const { key, ...rest } = props as typeof props & { key: string };
+                                return (
+                                    <li key={key} {...rest}>
+                                        <Typography
+                                            sx={{
+                                                fontWeight:
+                                                    option.kind === 'theme' ? undefined : 'bold',
+                                                pl: option.kind === 'theme' ? 2 : 0,
+                                                color:
+                                                    option.kind === 'bucket'
+                                                        ? bucketColor(option.label)
+                                                        : undefined,
+                                            }}
+                                        >
+                                            {option.kind === 'bucket'
+                                                ? `All ${option.label}`
+                                                : option.label}
+                                        </Typography>
+                                    </li>
+                                );
+                            }}
+                            renderInput={(params) => <TextField {...params} label='Focus on' />}
+                        />
+
                         <Box>
                             <Typography
                                 variant='overline'
@@ -158,45 +270,6 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                                 </Stack>
                             </Stack>
                         </Box>
-
-                        <Autocomplete
-                            options={options}
-                            value={focus}
-                            onChange={(_, value) => setFocus(value ?? ANYTHING)}
-                            groupBy={(option) => option.group}
-                            getOptionLabel={(option) => option.label}
-                            // A theme listed under several buckets appears under each of them.
-                            getOptionKey={(option) =>
-                                `${option.group}|${option.kind}|${option.label}`
-                            }
-                            isOptionEqualToValue={(a, b) =>
-                                a.kind === b.kind && a.label === b.label && a.group === b.group
-                            }
-                            disableClearable
-                            renderOption={(props, option) => {
-                                const { key, ...rest } = props as typeof props & { key: string };
-                                return (
-                                    <li key={key} {...rest}>
-                                        <Typography
-                                            sx={{
-                                                fontWeight:
-                                                    option.kind === 'theme' ? undefined : 'bold',
-                                                pl: option.kind === 'theme' ? 2 : 0,
-                                                color:
-                                                    option.kind === 'bucket'
-                                                        ? bucketColor(option.label)
-                                                        : undefined,
-                                            }}
-                                        >
-                                            {option.kind === 'bucket'
-                                                ? `All ${option.label}`
-                                                : option.label}
-                                        </Typography>
-                                    </li>
-                                );
-                            }}
-                            renderInput={(params) => <TextField {...params} label='Focus on' />}
-                        />
 
                         <Box>
                             <Typography

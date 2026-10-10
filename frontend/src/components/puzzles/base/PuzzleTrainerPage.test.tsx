@@ -116,11 +116,38 @@ describe('PuzzleTrainerPage setup', () => {
         expect(link.getAttribute('href')).toBe('/puzzles/train/history');
     });
 
-    it('asks for puzzles of any rating when started without changing anything', async () => {
+    it('asks for tactics of any rating when started without changing anything', async () => {
         const { train } = setup();
+        expect(screen.getByRole('button', { name: 'Tactics' }).getAttribute('aria-pressed')).toBe(
+            'true',
+        );
         start();
         await waitFor(() => expect(train).toHaveBeenCalled());
-        expect(train).toHaveBeenCalledWith({ count: 15, exclude: [] });
+        expect(train).toHaveBeenCalledWith({ count: 15, bucket: 'Tactics', exclude: [] });
+    });
+
+    it('trains on strategy, or on a mix of both', async () => {
+        const { train } = setup();
+        fireEvent.click(screen.getByRole('button', { name: 'Strategy' }));
+        start();
+        await waitFor(() => expect(train).toHaveBeenCalledTimes(1));
+        expect(train).toHaveBeenLastCalledWith(expect.objectContaining({ bucket: 'Strategy' }));
+
+        cleanup();
+        const mixed = setup();
+        fireEvent.click(screen.getByRole('button', { name: 'Mixed' }));
+        start();
+        await waitFor(() => expect(mixed.train).toHaveBeenCalled());
+        expect((mixed.train.mock.calls as unknown[][])[0][0]).not.toHaveProperty('bucket');
+    });
+
+    it('puts the focus menu above the puzzle rating', () => {
+        setup();
+        const focus = screen.getByLabelText('Focus on');
+        const rating = screen.getByText('Puzzle rating');
+        expect(
+            focus.compareDocumentPosition(rating) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
     });
 
     it('can narrow the range to around the member’s own rating (1500)', async () => {
@@ -170,16 +197,17 @@ describe('PuzzleTrainerPage setup', () => {
         await chooseFocus('Fork');
         start();
         await waitFor(() => expect(train).toHaveBeenCalled());
-        expect(train).toHaveBeenCalledWith(expect.objectContaining({ theme: 'Fork' }));
-        expect((train.mock.calls as unknown[][])[0][0]).not.toHaveProperty('bucket');
+        expect(train).toHaveBeenCalledWith(
+            expect.objectContaining({ theme: 'Fork', bucket: 'Tactics' }),
+        );
     });
 
-    it('lets the member focus on a whole bucket', async () => {
+    it('lets the member focus on a phase of the game, within the type of puzzle', async () => {
         const { train } = setup();
         await chooseFocus('All Endgame');
         start();
         await waitFor(() => expect(train).toHaveBeenCalled());
-        expect(train).toHaveBeenCalledWith(expect.objectContaining({ bucket: 'Endgame' }));
+        expect(train).toHaveBeenCalledWith(expect.objectContaining({ bucket: 'Tactics,Endgame' }));
     });
 
     it('still works if the list of themes cannot be loaded', async () => {

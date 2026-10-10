@@ -363,6 +363,20 @@ describe('pickTrainingPuzzles', () => {
         ).toEqual(['002', '003']);
     });
 
+    it('keeps to puzzles that have every bucket asked for', () => {
+        const mixed = [
+            puzzle('001', 1000, ['Tactics', 'Endgame'], []),
+            puzzle('002', 1000, ['Tactics', 'Middlegame'], []),
+            puzzle('003', 1000, ['Strategy', 'Endgame'], []),
+        ];
+        const ids = (bucket: string) =>
+            pickTrainingPuzzles(mixed, TrainRequestSchema.parse({ bucket }), () => 0)
+                .map((p) => p.id)
+                .sort();
+        expect(ids('Tactics,Endgame')).toEqual(['001']);
+        expect(ids('Endgame')).toEqual(['001', '003']);
+    });
+
     it('keeps to a bucket or a theme', () => {
         expect(ids(pickTrainingPuzzles(all, request({ bucket: 'Endgame' }), noShuffle))).toEqual([
             '003',
