@@ -307,36 +307,27 @@ export function TrainSetup({
                                     index === 0 ? 'Lowest puzzle rating' : 'Highest puzzle rating'
                                 }
                             />
-                            <Stack
-                                direction='row'
-                                sx={{ alignItems: 'center', justifyContent: 'space-between' }}
-                            >
-                                <Typography variant='body2' color='text.secondary'>
-                                    Drag the ends to train on harder or easier puzzles.
-                                </Typography>
-                                <Stack direction='row'>
-                                    {userRating > 0 && (
-                                        <Button
-                                            size='small'
-                                            color='inherit'
-                                            onClick={() => setRange(aroundYou)}
-                                            disabled={
-                                                range[0] === aroundYou[0] &&
-                                                range[1] === aroundYou[1]
-                                            }
-                                        >
-                                            Around my rating
-                                        </Button>
-                                    )}
+                            <Stack direction='row' sx={{ justifyContent: 'flex-end' }}>
+                                {userRating > 0 && (
                                     <Button
                                         size='small'
                                         color='inherit'
-                                        onClick={() => setRange(ALL_RATINGS)}
-                                        disabled={allRatings}
+                                        onClick={() => setRange(aroundYou)}
+                                        disabled={
+                                            range[0] === aroundYou[0] && range[1] === aroundYou[1]
+                                        }
                                     >
-                                        All ratings
+                                        Around my rating
                                     </Button>
-                                </Stack>
+                                )}
+                                <Button
+                                    size='small'
+                                    color='inherit'
+                                    onClick={() => setRange(ALL_RATINGS)}
+                                    disabled={allRatings}
+                                >
+                                    All ratings
+                                </Button>
                             </Stack>
                         </Box>
 
