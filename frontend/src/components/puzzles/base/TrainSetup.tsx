@@ -37,6 +37,15 @@ import {
     SessionLength,
 } from './trainingPuzzles';
 
+/** How the small choice buttons look: the one in use is filled with the main color. */
+const CHOICE_SX = {
+    '& .MuiToggleButton-root': { px: 2.5, textTransform: 'none', fontWeight: 600 },
+    '& .MuiToggleButton-root.Mui-selected, & .MuiToggleButton-root.Mui-selected:hover': {
+        bgcolor: 'primary.main',
+        color: 'primary.contrastText',
+    },
+} as const;
+
 /** What kind of puzzles to train on: one type of puzzle, or both. */
 export type TrainType = 'Tactics' | 'Strategy' | 'Mixed';
 
@@ -318,18 +327,7 @@ export function TrainSetup({
                                         if (value === 'around') setRange(aroundYou);
                                     }}
                                     aria-label='Rating range'
-                                    sx={{
-                                        '& .MuiToggleButton-root': {
-                                            px: 3,
-                                            textTransform: 'none',
-                                            fontWeight: 600,
-                                        },
-                                        // The one in use is filled, so it is clear which it is.
-                                        '& .Mui-selected, & .Mui-selected:hover': {
-                                            bgcolor: 'primary.main',
-                                            color: 'primary.contrastText',
-                                        },
-                                    }}
+                                    sx={CHOICE_SX}
                                 >
                                     <ToggleButton value='all'>All ratings</ToggleButton>
                                     {userRating > 0 && (
@@ -342,28 +340,34 @@ export function TrainSetup({
                         <Box>
                             <Typography
                                 variant='overline'
-                                sx={{ color: 'text.secondary', lineHeight: 1.4, display: 'block' }}
+                                sx={{
+                                    color: 'text.secondary',
+                                    lineHeight: 1.4,
+                                    display: 'block',
+                                    textAlign: 'center',
+                                }}
                             >
                                 Session length
                             </Typography>
-                            <ToggleButtonGroup
-                                exclusive
-                                size='small'
-                                value={length}
-                                onChange={(_, value: SessionLength | null) =>
-                                    value && setLength(value)
-                                }
-                                aria-label='Session length'
-                            >
-                                {SESSION_MINUTES.map((minutes) => (
-                                    <ToggleButton key={minutes} value={minutes} sx={{ px: 2 }}>
-                                        {minutes} min
-                                    </ToggleButton>
-                                ))}
-                                <ToggleButton value='unlimited' sx={{ px: 2 }}>
-                                    Unlimited
-                                </ToggleButton>
-                            </ToggleButtonGroup>
+                            <Stack direction='row' sx={{ justifyContent: 'center' }}>
+                                <ToggleButtonGroup
+                                    exclusive
+                                    size='small'
+                                    value={length}
+                                    onChange={(_, value: SessionLength | null) =>
+                                        value && setLength(value)
+                                    }
+                                    aria-label='Session length'
+                                    sx={CHOICE_SX}
+                                >
+                                    {SESSION_MINUTES.map((minutes) => (
+                                        <ToggleButton key={minutes} value={minutes}>
+                                            {minutes} min
+                                        </ToggleButton>
+                                    ))}
+                                    <ToggleButton value='unlimited'>Unlimited</ToggleButton>
+                                </ToggleButtonGroup>
+                            </Stack>
                         </Box>
                     </Stack>
                 </Paper>
