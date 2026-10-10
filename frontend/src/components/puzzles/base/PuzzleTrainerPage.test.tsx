@@ -141,29 +141,32 @@ describe('PuzzleTrainerPage setup', () => {
         expect(train).toHaveBeenCalledWith({ count: 15, types: 'Tactics', exclude: [] });
     });
 
-    it('has five boxes: tactics is on, and so is every phase of the game', () => {
+    it('has six boxes: tactics is picked, and so is every phase of the game', () => {
         setup();
         const on = (name: string) =>
             screen.getByRole('button', { name }).getAttribute('aria-pressed') === 'true';
         expect(on('Tactics')).toBe(true);
         expect(on('Strategy')).toBe(false);
+        expect(on('Mixed')).toBe(false);
         expect(['Opening', 'Middlegame', 'Endgame'].every(on)).toBe(true);
     });
 
-    it('trains on strategy instead, or on both with a mix', async () => {
+    it('trains on strategy, or on both with Mixed', async () => {
         const { train } = setup();
         fireEvent.click(screen.getByRole('button', { name: 'Strategy' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Tactics' }));
+        expect(screen.getByRole('button', { name: 'Tactics' }).getAttribute('aria-pressed')).toBe(
+            'false',
+        );
         start();
         await waitFor(() => expect(train).toHaveBeenCalledTimes(1));
         expect(train).toHaveBeenLastCalledWith(expect.objectContaining({ types: 'Strategy' }));
 
         cleanup();
-        const both = setup();
-        fireEvent.click(screen.getByRole('button', { name: 'Strategy' }));
+        const mixed = setup();
+        fireEvent.click(screen.getByRole('button', { name: 'Mixed' }));
         start();
-        await waitFor(() => expect(both.train).toHaveBeenCalled());
-        expect((both.train.mock.calls as unknown[][])[0][0]).not.toHaveProperty('types');
+        await waitFor(() => expect(mixed.train).toHaveBeenCalled());
+        expect((mixed.train.mock.calls as unknown[][])[0][0]).not.toHaveProperty('types');
     });
 
     it('trains only on the phases of the game that are on', async () => {
@@ -176,7 +179,7 @@ describe('PuzzleTrainerPage setup', () => {
         );
     });
 
-    it('never turns off the last type or the last phase', () => {
+    it('keeps the type picked, and never turns off the last phase', () => {
         setup();
         fireEvent.click(screen.getByRole('button', { name: 'Tactics' }));
         expect(screen.getByRole('button', { name: 'Tactics' }).getAttribute('aria-pressed')).toBe(
