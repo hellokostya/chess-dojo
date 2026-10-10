@@ -110,6 +110,21 @@ describe('PuzzleTrainerPage setup', () => {
         expect(screen.getByRole('button', { name: 'Around my rating' })).toBeTruthy();
     });
 
+    it('shows which rating range is in use', () => {
+        setup();
+        const all = () => screen.getByRole('button', { name: 'All ratings' });
+        const around = () => screen.getByRole('button', { name: 'Around my rating' });
+        expect(all().getAttribute('aria-pressed')).toBe('true');
+        expect(around().getAttribute('aria-pressed')).toBe('false');
+
+        fireEvent.click(around());
+        expect(around().getAttribute('aria-pressed')).toBe('true');
+        expect(all().getAttribute('aria-pressed')).toBe('false');
+
+        fireEvent.click(all());
+        expect(all().getAttribute('aria-pressed')).toBe('true');
+    });
+
     it('links to past runs under the Start training button', () => {
         setup();
         const link = screen.getByRole('link', { name: 'View past runs' });

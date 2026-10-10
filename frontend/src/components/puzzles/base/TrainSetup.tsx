@@ -140,6 +140,7 @@ export function TrainSetup({
     const [focus, setFocus] = useState<FocusOption>(ANYTHING);
     const [length, setLength] = useState<SessionLength>(20);
     const allRatings = range[0] === ALL_RATINGS[0] && range[1] === ALL_RATINGS[1];
+    const isAroundYou = range[0] === aroundYou[0] && range[1] === aroundYou[1];
 
     const options = useMemo(
         () => focusOptions(taxonomy, type, available),
@@ -307,27 +308,34 @@ export function TrainSetup({
                                     index === 0 ? 'Lowest puzzle rating' : 'Highest puzzle rating'
                                 }
                             />
-                            <Stack direction='row' sx={{ justifyContent: 'flex-end' }}>
-                                {userRating > 0 && (
-                                    <Button
-                                        size='small'
-                                        color='inherit'
-                                        onClick={() => setRange(aroundYou)}
-                                        disabled={
-                                            range[0] === aroundYou[0] && range[1] === aroundYou[1]
-                                        }
-                                    >
-                                        Around my rating
-                                    </Button>
-                                )}
-                                <Button
+                            <Stack direction='row' sx={{ justifyContent: 'center', mt: 1 }}>
+                                <ToggleButtonGroup
+                                    exclusive
                                     size='small'
-                                    color='inherit'
-                                    onClick={() => setRange(ALL_RATINGS)}
-                                    disabled={allRatings}
+                                    value={allRatings ? 'all' : isAroundYou ? 'around' : null}
+                                    onChange={(_, value: 'all' | 'around' | null) => {
+                                        if (value === 'all') setRange(ALL_RATINGS);
+                                        if (value === 'around') setRange(aroundYou);
+                                    }}
+                                    aria-label='Rating range'
+                                    sx={{
+                                        '& .MuiToggleButton-root': {
+                                            px: 3,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                        },
+                                        // The one in use is filled, so it is clear which it is.
+                                        '& .Mui-selected, & .Mui-selected:hover': {
+                                            bgcolor: 'primary.main',
+                                            color: 'primary.contrastText',
+                                        },
+                                    }}
                                 >
-                                    All ratings
-                                </Button>
+                                    <ToggleButton value='all'>All ratings</ToggleButton>
+                                    {userRating > 0 && (
+                                        <ToggleButton value='around'>Around my rating</ToggleButton>
+                                    )}
+                                </ToggleButtonGroup>
                             </Stack>
                         </Box>
 
