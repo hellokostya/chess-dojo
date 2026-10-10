@@ -28,7 +28,6 @@ import { alpha, darken } from '@mui/material/styles';
 import Link from 'next/link';
 import { ReactNode, useMemo, useState } from 'react';
 import { sortThemes } from './BucketThemeMenu';
-import { CounterplayIcon } from './CounterplayIcon';
 import {
     ALL_RATINGS,
     defaultRatingWindow,
@@ -65,25 +64,16 @@ export const DEFAULT_SELECTION: TrainSelection = {
     phases: [...PUZZLE_PHASES],
 };
 
-/** The three choices of type: tactics, strategy, or both with a mix. */
-const TYPE_CHOICES = ['Tactics', 'Strategy', 'Mixed'] as const;
-type TypeChoice = (typeof TYPE_CHOICES)[number];
-
-/** Which type choice a selection is: both types is a mix. */
-const typeChoice = (types: PuzzleType[]): TypeChoice =>
-    types.length === PUZZLE_TYPES.length ? 'Mixed' : types[0];
-
 /**
  * How each choice looks: a color deep enough for white text, and an icon. Where the Dojo's
  * training plan has an icon for the same part of the game, this uses it.
  */
-const CHOICE_STYLE: Record<TypeChoice | PuzzlePhase, { color: string; icon: ReactNode }> = {
+const CHOICE_STYLE: Record<PuzzleType | PuzzlePhase, { color: string; icon: ReactNode }> = {
     Tactics: {
         color: '#2e7d32',
         icon: <TrainingPlanIcon category={RequirementCategory.Tactics} />,
     },
     Strategy: { color: '#b88a00', icon: <TrainingPlanIcon category={RequirementCategory.Games} /> },
-    Mixed: { color: '#e65100', icon: <CounterplayIcon /> },
     Opening: {
         color: '#d84343',
         icon: <TrainingPlanIcon category={RequirementCategory.Opening} />,
@@ -227,53 +217,41 @@ export function TrainSetup({
 
                 <Paper variant='outlined' sx={{ p: 3 }}>
                     <Stack sx={{ gap: 3 }}>
-                        <Stack sx={{ gap: 1.5 }}>
-                            <SectionLabel>What to train</SectionLabel>
-                            <ToggleButtonGroup
-                                exclusive
-                                value={typeChoice(selection.types)}
-                                onChange={(_, value: TypeChoice | null) => {
-                                    if (value) {
-                                        choose({
-                                            ...selection,
-                                            types: value === 'Mixed' ? [...PUZZLE_TYPES] : [value],
-                                        });
-                                    }
-                                }}
-                                aria-label='Type of puzzle'
-                                sx={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(3, 1fr)',
-                                    gap: 1.5,
-                                }}
-                            >
-                                {TYPE_CHOICES.map((option) => (
-                                    <ChoiceCard key={option} option={option} />
-                                ))}
-                            </ToggleButtonGroup>
-                        </Stack>
+                        <ToggleButtonGroup
+                            value={selection.types}
+                            onChange={(_, value: PuzzleType[]) =>
+                                choose({ ...selection, types: value })
+                            }
+                            aria-label='Type of puzzle'
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(2, 1fr)',
+                                gap: 1.5,
+                            }}
+                        >
+                            {PUZZLE_TYPES.map((option) => (
+                                <ChoiceCard key={option} option={option} wide />
+                            ))}
+                        </ToggleButtonGroup>
 
                         <Divider sx={{ my: 3, borderBottomWidth: 2 }} />
 
-                        <Stack sx={{ gap: 1.5 }}>
-                            <SectionLabel>In which phases of the game · choose any</SectionLabel>
-                            <ToggleButtonGroup
-                                value={selection.phases}
-                                onChange={(_, value: PuzzlePhase[]) =>
-                                    choose({ ...selection, phases: value })
-                                }
-                                aria-label='Phase of the game'
-                                sx={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(3, 1fr)',
-                                    gap: 1.5,
-                                }}
-                            >
-                                {PUZZLE_PHASES.map((option) => (
-                                    <ChoiceCard key={option} option={option} />
-                                ))}
-                            </ToggleButtonGroup>
-                        </Stack>
+                        <ToggleButtonGroup
+                            value={selection.phases}
+                            onChange={(_, value: PuzzlePhase[]) =>
+                                choose({ ...selection, phases: value })
+                            }
+                            aria-label='Phase of the game'
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(3, 1fr)',
+                                gap: 1.5,
+                            }}
+                        >
+                            {PUZZLE_PHASES.map((option) => (
+                                <ChoiceCard key={option} option={option} />
+                            ))}
+                        </ToggleButtonGroup>
 
                         <Autocomplete
                             options={options}
@@ -412,20 +390,8 @@ export function TrainSetup({
     );
 }
 
-/** A small centered heading over a group of cards. */
-function SectionLabel({ children }: { children: ReactNode }) {
-    return (
-        <Typography
-            variant='overline'
-            sx={{ color: 'text.secondary', lineHeight: 1.4, textAlign: 'center' }}
-        >
-            {children}
-        </Typography>
-    );
-}
-
 /** One big card: a type of puzzle or a phase of the game. Picked cards fill with their color. */
-function ChoiceCard({ option }: { option: TypeChoice | PuzzlePhase }) {
+function ChoiceCard({ option, wide }: { option: PuzzleType | PuzzlePhase; wide?: boolean }) {
     const { color, icon } = CHOICE_STYLE[option];
     return (
         <ToggleButton
@@ -439,14 +405,14 @@ function ChoiceCard({ option }: { option: TypeChoice | PuzzlePhase }) {
                     border: '2px solid',
                     borderColor: alpha(color, 0.55),
                 },
-                aspectRatio: '1.1 / 1',
+                aspectRatio: wide ? '1.7 / 1' : '1.1 / 1',
                 flexDirection: 'column',
                 justifyContent: 'center',
                 gap: 1,
                 textAlign: 'center',
                 textTransform: 'none',
                 color: 'text.primary',
-                fontSize: { xs: '1rem', sm: '1.3rem' },
+                fontSize: wide ? { xs: '1.35rem', sm: '1.75rem' } : { xs: '1rem', sm: '1.3rem' },
                 fontWeight: 800,
                 letterSpacing: 0.3,
                 lineHeight: 1.1,
@@ -455,7 +421,9 @@ function ChoiceCard({ option }: { option: TypeChoice | PuzzlePhase }) {
                 transition: 'transform 150ms, box-shadow 150ms, background 150ms',
                 '& svg': {
                     color,
-                    fontSize: { xs: '2.25rem', sm: '2.75rem' },
+                    fontSize: wide
+                        ? { xs: '2.75rem', sm: '3.5rem' }
+                        : { xs: '2.25rem', sm: '2.75rem' },
                     filter: `drop-shadow(0 2px 4px ${alpha(color, 0.35)})`,
                 },
                 '&:hover': {
