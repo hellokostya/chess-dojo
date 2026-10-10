@@ -2,7 +2,7 @@
 
 import { PuzzlebaseTaxonomy } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
 import { TrainQuery } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
-import { Bolt, CompareArrows, History, PlayArrow } from '@mui/icons-material';
+import { Bolt, History, PlayArrow } from '@mui/icons-material';
 import {
     Alert,
     Autocomplete,
@@ -23,6 +23,7 @@ import { ReactNode, useMemo, useState } from 'react';
 import { BookPile } from './BookPile';
 import { bucketColor } from './bucketStyle';
 import { sortThemes } from './BucketThemeMenu';
+import { CounterplayIcon } from './CounterplayIcon';
 import {
     ALL_RATINGS,
     defaultRatingWindow,
@@ -41,7 +42,7 @@ const TRAIN_TYPES: TrainType[] = ['Tactics', 'Strategy', 'Mixed'];
 const TYPE_STYLE: Record<TrainType, { color: string; icon: ReactNode }> = {
     Tactics: { color: '#2e7d32', icon: <Bolt /> },
     Strategy: { color: '#b88a00', icon: <BookPile /> },
-    Mixed: { color: '#e65100', icon: <CompareArrows /> },
+    Mixed: { color: '#e65100', icon: <CounterplayIcon /> },
 };
 
 /** One thing the member can choose to focus on: anything, a phase of the game, or one theme. */
@@ -168,7 +169,7 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                                     key={option}
                                     value={option}
                                     sx={{
-                                        // Square boxes with the icon above the name.
+                                        // Square boxes with the name on top and the icon under it.
                                         aspectRatio: '1 / 1',
                                         flexDirection: 'column',
                                         gap: 1,
@@ -194,8 +195,8 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
                                         },
                                     }}
                                 >
-                                    {TYPE_STYLE[option].icon}
                                     {option}
+                                    {TYPE_STYLE[option].icon}
                                 </ToggleButton>
                             ))}
                         </ToggleButtonGroup>
