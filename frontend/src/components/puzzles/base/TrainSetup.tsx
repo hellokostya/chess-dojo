@@ -1,12 +1,14 @@
 'use client';
 
+import { TrainingPlanIcon } from '@/components/profile/trainingPlan/TrainingPlanIcon';
+import { RequirementCategory } from '@/database/requirement';
 import { PuzzlebaseTaxonomy } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
 import {
     hasPuzzles,
     TrainingTagSet,
     TrainQuery,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
-import { Bolt, History, PlayArrow } from '@mui/icons-material';
+import { History, PlayArrow } from '@mui/icons-material';
 import {
     Alert,
     Autocomplete,
@@ -23,11 +25,8 @@ import {
 } from '@mui/material';
 import { alpha, darken } from '@mui/material/styles';
 import Link from 'next/link';
-import { ReactNode, useMemo, useState } from 'react';
-import { BookPile } from './BookPile';
-import { bucketColor } from './bucketStyle';
+import { useMemo, useState } from 'react';
 import { sortThemes } from './BucketThemeMenu';
-import { CounterplayIcon } from './CounterplayIcon';
 import {
     ALL_RATINGS,
     defaultRatingWindow,
@@ -46,21 +45,42 @@ const CHOICE_SX = {
     },
 } as const;
 
-/** What kind of puzzles to train on: one type of puzzle, or both. */
-export type TrainType = 'Tactics' | 'Strategy' | 'Mixed';
+/** The kinds of puzzle, and the phases of the game, a member can train on. */
+export const PUZZLE_TYPES = ['Tactics', 'Strategy'] as const;
+export const PUZZLE_PHASES = ['Opening', 'Middlegame', 'Endgame'] as const;
+export type PuzzleType = (typeof PUZZLE_TYPES)[number];
+export type PuzzlePhase = (typeof PUZZLE_PHASES)[number];
 
-const TRAIN_TYPES: TrainType[] = ['Tactics', 'Strategy', 'Mixed'];
+/** What a member chose to train on: any of these types, in any of these phases. */
+export interface TrainSelection {
+    types: PuzzleType[];
+    phases: PuzzlePhase[];
+}
 
-/** How each type looks on its button: an icon and a color deep enough for white text. */
-const TYPE_STYLE: Record<TrainType, { color: string; icon: ReactNode }> = {
-    Tactics: { color: '#2e7d32', icon: <Bolt /> },
-    Strategy: { color: '#b88a00', icon: <BookPile /> },
-    Mixed: { color: '#e65100', icon: <CounterplayIcon /> },
+/** Tactics only, in every phase of the game. */
+export const DEFAULT_SELECTION: TrainSelection = {
+    types: ['Tactics'],
+    phases: [...PUZZLE_PHASES],
 };
 
-/** One thing the member can choose to focus on: anything, a phase of the game, or one theme. */
+/**
+ * How each choice looks: a color deep enough for white text, and the icon the Dojo's training plan
+ * uses for the same part of the game.
+ */
+const CHOICE_STYLE: Record<
+    PuzzleType | PuzzlePhase,
+    { color: string; category: RequirementCategory }
+> = {
+    Tactics: { color: '#2e7d32', category: RequirementCategory.Tactics },
+    Strategy: { color: '#b88a00', category: RequirementCategory.Games },
+    Opening: { color: '#d84343', category: RequirementCategory.Opening },
+    Middlegame: { color: '#5757e6', category: RequirementCategory.Middlegames },
+    Endgame: { color: '#8e5ee0', category: RequirementCategory.Endgame },
+};
+
+/** One thing the member can choose to focus on: all themes, or one theme. */
 interface FocusOption {
-    kind: 'any' | 'bucket' | 'theme';
+    kind: 'any' | 'theme';
     label: string;
     /** The bucket the option is listed under. */
     group: string;
@@ -68,52 +88,48 @@ interface FocusOption {
 
 const ANYTHING: FocusOption = { kind: 'any', label: 'All Themes', group: 'All puzzles' };
 
-/** The buckets that say what kind of puzzle it is. The others are phases of the game. */
-const TYPE_BUCKETS = new Set(['Tactics', 'Strategy']);
-
 /**
- * What can be focused on for a type of puzzle: all themes, each phase of the game, and the themes.
- * The type itself is chosen with the big buttons, so it is not offered again, and with Tactics
- * chosen the themes that only belong to Strategy are left out, and the other way around.
+ * What can be focused on for what the member chose: all themes, and the themes that puzzles of
+ * those types and phases have. With a type or phase turned off, the themes that only belong to it
+ * are left out. Until the puzzles' tags are known, every theme of the chosen buckets is offered.
  */
 export function focusOptions(
     taxonomy: PuzzlebaseTaxonomy,
-    type: TrainType,
+    selection: TrainSelection,
     available?: TrainingTagSet[],
 ): FocusOption[] {
-    // Only choices that find puzzles. Until we know what there is, everything is offered.
-    const typeBuckets = type === 'Mixed' ? [] : [type];
-    const found = (wanted: { buckets?: string[]; theme?: string }) =>
-        available === undefined ||
-        hasPuzzles(available, { ...wanted, buckets: [...typeBuckets, ...(wanted.buckets ?? [])] });
+    const chosen = new Set<string>([...selection.types, ...selection.phases]);
+    const found = (theme: string) =>
+        available === undefined || hasPuzzles(available, { ...selection, theme });
 
     const options: FocusOption[] = [ANYTHING];
     for (const [bucket, themes] of Object.entries(taxonomy.buckets)) {
-        const isType = TYPE_BUCKETS.has(bucket);
-        if (isType && type !== 'Mixed' && bucket !== type) continue;
-        if (!isType && found({ buckets: [bucket] })) {
-            options.push({ kind: 'bucket', label: bucket, group: bucket });
-        }
+        const isChoice = bucket in CHOICE_STYLE;
+        if (isChoice && !chosen.has(bucket)) continue;
         options.push(
             ...sortThemes(themes)
-                .filter((theme) => found({ theme }))
+                .filter(found)
                 .map((theme) => ({ kind: 'theme' as const, label: theme, group: bucket })),
         );
     }
     return options;
 }
 
-/** The query for a type of puzzle and a focus: the buckets a puzzle must have, and its theme. */
+/**
+ * The query for what the member chose. A choice that leaves nothing out, such as every phase, asks
+ * for nothing, so puzzles that are not tagged with it yet are included.
+ */
 export function focusQuery(
-    type: TrainType,
+    selection: TrainSelection,
     focus: FocusOption,
-): Pick<TrainQuery, 'bucket' | 'theme'> {
-    const buckets = [
-        type === 'Mixed' ? undefined : type,
-        focus.kind === 'bucket' ? focus.label : undefined,
-    ].filter((bucket): bucket is string => bucket !== undefined);
+): Pick<TrainQuery, 'types' | 'phases' | 'theme'> {
     return {
-        ...(buckets.length > 0 ? { bucket: buckets.join(',') } : {}),
+        ...(selection.types.length < PUZZLE_TYPES.length
+            ? { types: selection.types.join(',') }
+            : {}),
+        ...(selection.phases.length < PUZZLE_PHASES.length
+            ? { phases: selection.phases.join(',') }
+            : {}),
         ...(focus.kind === 'theme' ? { theme: focus.label } : {}),
     };
 }
@@ -132,8 +148,7 @@ interface TrainSetupProps {
 }
 
 /**
- * Where a member chooses what to train on: tactics, strategy or a mix, whether to focus on one
- * phase or theme, how hard the puzzles are, and for how long. The rating range starts as all ratings.
+ * Where a member chooses what to train on: tactics or strategy, which phases of the game, one theme or all, how hard the puzzles are, and for how long. The rating range starts as all ratings.
  */
 export function TrainSetup({
     taxonomy,
@@ -145,20 +160,21 @@ export function TrainSetup({
 }: TrainSetupProps) {
     const aroundYou = useMemo(() => defaultRatingWindow(userRating), [userRating]);
     const [range, setRange] = useState<[number, number]>(ALL_RATINGS);
-    const [type, setType] = useState<TrainType>('Tactics');
+    const [selection, setSelection] = useState<TrainSelection>(DEFAULT_SELECTION);
     const [focus, setFocus] = useState<FocusOption>(ANYTHING);
     const [length, setLength] = useState<SessionLength>(20);
     const allRatings = range[0] === ALL_RATINGS[0] && range[1] === ALL_RATINGS[1];
     const isAroundYou = range[0] === aroundYou[0] && range[1] === aroundYou[1];
 
     const options = useMemo(
-        () => focusOptions(taxonomy, type, available),
-        [taxonomy, type, available],
+        () => focusOptions(taxonomy, selection, available),
+        [taxonomy, selection, available],
     );
 
-    /** Picks a type of puzzle. A focus that does not belong to it is dropped. */
-    const chooseType = (next: TrainType) => {
-        setType(next);
+    /** Changes the types or phases chosen. At least one of each stays on, and a theme that no longer fits is dropped. */
+    const choose = (next: TrainSelection) => {
+        if (next.types.length === 0 || next.phases.length === 0) return;
+        setSelection(next);
         const stillThere = focusOptions(taxonomy, next, available).some(
             (o) => o.kind === focus.kind && o.label === focus.label && o.group === focus.group,
         );
@@ -171,7 +187,7 @@ export function TrainSetup({
                 // All ratings leaves the range open, so puzzles above the slider are included.
                 ...(allRatings ? {} : { minRating: range[0], maxRating: range[1] }),
                 count: PUZZLES_PER_BATCH,
-                ...focusQuery(type, focus),
+                ...focusQuery(selection, focus),
             },
             length,
         );
@@ -191,70 +207,40 @@ export function TrainSetup({
 
                 <Paper variant='outlined' sx={{ p: 3 }}>
                     <Stack sx={{ gap: 3 }}>
-                        <ToggleButtonGroup
-                            exclusive
-                            fullWidth
-                            value={type}
-                            onChange={(_, value: TrainType | null) => value && chooseType(value)}
-                            aria-label='Type of puzzle'
-                            sx={{ gap: 1.5 }}
-                        >
-                            {TRAIN_TYPES.map((option) => {
-                                const { color, icon } = TYPE_STYLE[option];
-                                return (
-                                    <ToggleButton
-                                        key={option}
-                                        value={option}
-                                        sx={{
-                                            // The group squares off its buttons; this makes them separate,
-                                            // rounded cards. The doubled & wins over the group's rules.
-                                            '&&': {
-                                                m: 0,
-                                                borderRadius: '18px',
-                                                border: '2px solid',
-                                                borderColor: alpha(color, 0.55),
-                                            },
-                                            // Square, with the name and the icon in the middle.
-                                            aspectRatio: '1 / 1',
-                                            flexDirection: 'column',
-                                            justifyContent: 'center',
-                                            gap: 1.5,
-                                            textAlign: 'center',
-                                            textTransform: 'none',
-                                            color: 'text.primary',
-                                            fontSize: { xs: '1.35rem', sm: '1.75rem' },
-                                            fontWeight: 800,
-                                            letterSpacing: 0.3,
-                                            lineHeight: 1.1,
-                                            // Colored even when not selected: a tint that fades down.
-                                            background: `linear-gradient(160deg, ${alpha(color, 0.4)}, ${alpha(color, 0.14)})`,
-                                            transition:
-                                                'transform 150ms, box-shadow 150ms, background 150ms',
-                                            '& svg': {
-                                                color,
-                                                fontSize: { xs: '3rem', sm: '4rem' },
-                                                filter: `drop-shadow(0 2px 4px ${alpha(color, 0.35)})`,
-                                            },
-                                            '&:hover': {
-                                                transform: 'translateY(-2px)',
-                                                background: `linear-gradient(160deg, ${alpha(color, 0.52)}, ${alpha(color, 0.22)})`,
-                                            },
-                                            // Selected, the card fills with the color and lifts.
-                                            '&.Mui-selected, &.Mui-selected:hover': {
-                                                background: `linear-gradient(160deg, ${color}, ${darken(color, 0.28)})`,
-                                                color: '#fff',
-                                                transform: 'translateY(-3px)',
-                                                boxShadow: `0 10px 24px ${alpha(color, 0.45)}`,
-                                                '& svg': { color: '#fff', filter: 'none' },
-                                            },
-                                        }}
-                                    >
-                                        {option}
-                                        {icon}
-                                    </ToggleButton>
-                                );
-                            })}
-                        </ToggleButtonGroup>
+                        <Stack sx={{ gap: 1.5 }}>
+                            <ToggleButtonGroup
+                                value={selection.types}
+                                onChange={(_, value: PuzzleType[]) =>
+                                    choose({ ...selection, types: value })
+                                }
+                                aria-label='Type of puzzle'
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, 1fr)',
+                                    gap: 1.5,
+                                }}
+                            >
+                                {PUZZLE_TYPES.map((option) => (
+                                    <ChoiceCard key={option} option={option} wide />
+                                ))}
+                            </ToggleButtonGroup>
+                            <ToggleButtonGroup
+                                value={selection.phases}
+                                onChange={(_, value: PuzzlePhase[]) =>
+                                    choose({ ...selection, phases: value })
+                                }
+                                aria-label='Phase of the game'
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(3, 1fr)',
+                                    gap: 1.5,
+                                }}
+                            >
+                                {PUZZLE_PHASES.map((option) => (
+                                    <ChoiceCard key={option} option={option} />
+                                ))}
+                            </ToggleButtonGroup>
+                        </Stack>
 
                         <Autocomplete
                             options={options}
@@ -277,17 +263,11 @@ export function TrainSetup({
                                         <Typography
                                             sx={{
                                                 fontWeight:
-                                                    option.kind === 'theme' ? undefined : 'bold',
+                                                    option.kind === 'any' ? 'bold' : undefined,
                                                 pl: option.kind === 'theme' ? 2 : 0,
-                                                color:
-                                                    option.kind === 'bucket'
-                                                        ? bucketColor(option.label)
-                                                        : undefined,
                                             }}
                                         >
-                                            {option.kind === 'bucket'
-                                                ? `All ${option.label}`
-                                                : option.label}
+                                            {option.label}
                                         </Typography>
                                     </li>
                                 );
@@ -396,5 +376,61 @@ export function TrainSetup({
                 </Button>
             </Stack>
         </Container>
+    );
+}
+
+/** One big card: a type of puzzle or a phase of the game. Picked cards fill with their color. */
+function ChoiceCard({ option, wide }: { option: PuzzleType | PuzzlePhase; wide?: boolean }) {
+    const { color, category } = CHOICE_STYLE[option];
+    return (
+        <ToggleButton
+            value={option}
+            sx={{
+                // The group squares off its buttons; this makes them separate, rounded cards.
+                // The doubled & wins over the group's own rules.
+                '&&': {
+                    m: 0,
+                    borderRadius: '18px',
+                    border: '2px solid',
+                    borderColor: alpha(color, 0.55),
+                },
+                aspectRatio: wide ? '1.7 / 1' : '1.1 / 1',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: 1,
+                textAlign: 'center',
+                textTransform: 'none',
+                color: 'text.primary',
+                fontSize: wide ? { xs: '1.35rem', sm: '1.75rem' } : { xs: '1rem', sm: '1.3rem' },
+                fontWeight: 800,
+                letterSpacing: 0.3,
+                lineHeight: 1.1,
+                // Colored even when not picked: a tint that fades down.
+                background: `linear-gradient(160deg, ${alpha(color, 0.4)}, ${alpha(color, 0.14)})`,
+                transition: 'transform 150ms, box-shadow 150ms, background 150ms',
+                '& svg': {
+                    color,
+                    fontSize: wide
+                        ? { xs: '2.75rem', sm: '3.5rem' }
+                        : { xs: '2.25rem', sm: '2.75rem' },
+                    filter: `drop-shadow(0 2px 4px ${alpha(color, 0.35)})`,
+                },
+                '&:hover': {
+                    transform: 'translateY(-2px)',
+                    background: `linear-gradient(160deg, ${alpha(color, 0.52)}, ${alpha(color, 0.22)})`,
+                },
+                // Picked, the card fills with the color and lifts.
+                '&.Mui-selected, &.Mui-selected:hover': {
+                    background: `linear-gradient(160deg, ${color}, ${darken(color, 0.28)})`,
+                    color: '#fff',
+                    transform: 'translateY(-3px)',
+                    boxShadow: `0 10px 24px ${alpha(color, 0.45)}`,
+                    '& svg': { color: '#fff', filter: 'none' },
+                },
+            }}
+        >
+            {option}
+            <TrainingPlanIcon category={category} />
+        </ToggleButton>
     );
 }

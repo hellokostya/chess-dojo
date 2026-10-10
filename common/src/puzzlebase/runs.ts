@@ -266,6 +266,10 @@ export type RunsRequest = z.infer<typeof RunsRequestSchema>;
 export const TrainRequestSchema = z.object({
     /** Only puzzles with this bucket. Several, separated by commas, means all of them. */
     bucket: z.string().optional(),
+    /** Only puzzles with one of these buckets, separated by commas: Tactics, Strategy, or both. */
+    types: z.string().optional(),
+    /** Only puzzles in one of these phases of the game, separated by commas. */
+    phases: z.string().optional(),
     /** Only puzzles with this theme. */
     theme: z.string().optional(),
     minRating: z.coerce.number().int().min(0).max(3500).optional(),
@@ -309,11 +313,23 @@ export function trainingTagSets(
  */
 export function hasPuzzles(
     sets: TrainingTagSet[],
-    wanted: { buckets?: string[]; theme?: string },
+    wanted: {
+        /** The puzzle must have all of these. */
+        buckets?: string[];
+        /** The puzzle must have at least one of these, if any are given. */
+        types?: string[];
+        /** The puzzle must have at least one of these, if any are given. */
+        phases?: string[];
+        theme?: string;
+    },
 ): boolean {
+    const hasAny = (set: TrainingTagSet, any?: string[]) =>
+        !any || any.length === 0 || any.some((bucket) => set.buckets.includes(bucket));
     return sets.some(
         (set) =>
             (wanted.buckets ?? []).every((bucket) => set.buckets.includes(bucket)) &&
+            hasAny(set, wanted.types) &&
+            hasAny(set, wanted.phases) &&
             (wanted.theme === undefined || set.themes.includes(wanted.theme)),
     );
 }
@@ -333,10 +349,14 @@ export function pickTrainingPuzzles(
 ): PuzzlebasePuzzle[] {
     const excluded = new Set((request.exclude ?? '').split(',').filter(Boolean));
     const buckets = (request.bucket ?? '').split(',').filter(Boolean);
+    const types = (request.types ?? '').split(',').filter(Boolean);
+    const phases = (request.phases ?? '').split(',').filter(Boolean);
     const matches = puzzles.filter(
         (p) =>
             !excluded.has(p.id) &&
             buckets.every((bucket) => p.buckets.includes(bucket)) &&
+            (types.length === 0 || types.some((type) => p.buckets.includes(type))) &&
+            (phases.length === 0 || phases.some((phase) => p.buckets.includes(phase))) &&
             (request.theme === undefined || p.themes.includes(request.theme)) &&
             (request.minRating === undefined || p.rating >= request.minRating) &&
             (request.maxRating === undefined || p.rating <= request.maxRating),
@@ -357,6 +377,10 @@ export function pickTrainingPuzzles(
 export interface TrainQuery {
     /** Only puzzles with this bucket. Several, separated by commas, means all of them. */
     bucket?: string;
+    /** Only puzzles with one of these buckets, separated by commas: Tactics, Strategy, or both. */
+    types?: string;
+    /** Only puzzles in one of these phases of the game, separated by commas. */
+    phases?: string;
     /** Only puzzles with this theme. */
     theme?: string;
     minRating?: number;

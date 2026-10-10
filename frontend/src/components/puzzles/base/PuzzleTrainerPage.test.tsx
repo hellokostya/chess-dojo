@@ -138,22 +138,56 @@ describe('PuzzleTrainerPage setup', () => {
         );
         start();
         await waitFor(() => expect(train).toHaveBeenCalled());
-        expect(train).toHaveBeenCalledWith({ count: 15, bucket: 'Tactics', exclude: [] });
+        expect(train).toHaveBeenCalledWith({ count: 15, types: 'Tactics', exclude: [] });
     });
 
-    it('trains on strategy, or on a mix of both', async () => {
+    it('has five boxes: tactics is on, and so is every phase of the game', () => {
+        setup();
+        const on = (name: string) =>
+            screen.getByRole('button', { name }).getAttribute('aria-pressed') === 'true';
+        expect(on('Tactics')).toBe(true);
+        expect(on('Strategy')).toBe(false);
+        expect(['Opening', 'Middlegame', 'Endgame'].every(on)).toBe(true);
+    });
+
+    it('trains on strategy instead, or on both with a mix', async () => {
         const { train } = setup();
         fireEvent.click(screen.getByRole('button', { name: 'Strategy' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Tactics' }));
         start();
         await waitFor(() => expect(train).toHaveBeenCalledTimes(1));
-        expect(train).toHaveBeenLastCalledWith(expect.objectContaining({ bucket: 'Strategy' }));
+        expect(train).toHaveBeenLastCalledWith(expect.objectContaining({ types: 'Strategy' }));
 
         cleanup();
-        const mixed = setup();
-        fireEvent.click(screen.getByRole('button', { name: 'Mixed' }));
+        const both = setup();
+        fireEvent.click(screen.getByRole('button', { name: 'Strategy' }));
         start();
-        await waitFor(() => expect(mixed.train).toHaveBeenCalled());
-        expect((mixed.train.mock.calls as unknown[][])[0][0]).not.toHaveProperty('bucket');
+        await waitFor(() => expect(both.train).toHaveBeenCalled());
+        expect((both.train.mock.calls as unknown[][])[0][0]).not.toHaveProperty('types');
+    });
+
+    it('trains only on the phases of the game that are on', async () => {
+        const { train } = setup();
+        fireEvent.click(screen.getByRole('button', { name: 'Opening' }));
+        start();
+        await waitFor(() => expect(train).toHaveBeenCalled());
+        expect(train).toHaveBeenCalledWith(
+            expect.objectContaining({ types: 'Tactics', phases: 'Middlegame,Endgame' }),
+        );
+    });
+
+    it('never turns off the last type or the last phase', () => {
+        setup();
+        fireEvent.click(screen.getByRole('button', { name: 'Tactics' }));
+        expect(screen.getByRole('button', { name: 'Tactics' }).getAttribute('aria-pressed')).toBe(
+            'true',
+        );
+        for (const phase of ['Opening', 'Middlegame', 'Endgame']) {
+            fireEvent.click(screen.getByRole('button', { name: phase }));
+        }
+        expect(screen.getByRole('button', { name: 'Endgame' }).getAttribute('aria-pressed')).toBe(
+            'true',
+        );
     });
 
     it('puts the themes menu above the puzzle rating', () => {
@@ -213,16 +247,8 @@ describe('PuzzleTrainerPage setup', () => {
         start();
         await waitFor(() => expect(train).toHaveBeenCalled());
         expect(train).toHaveBeenCalledWith(
-            expect.objectContaining({ theme: 'Fork', bucket: 'Tactics' }),
+            expect.objectContaining({ theme: 'Fork', types: 'Tactics' }),
         );
-    });
-
-    it('lets the member focus on a phase of the game, within the type of puzzle', async () => {
-        const { train } = setup();
-        await chooseFocus('All Endgame');
-        start();
-        await waitFor(() => expect(train).toHaveBeenCalled());
-        expect(train).toHaveBeenCalledWith(expect.objectContaining({ bucket: 'Tactics,Endgame' }));
     });
 
     it('still works if the list of themes cannot be loaded', async () => {

@@ -365,6 +365,23 @@ describe('pickTrainingPuzzles', () => {
         ).toEqual(['002', '003']);
     });
 
+    it('keeps to puzzles of one of the types and one of the phases asked for', () => {
+        const all = [
+            puzzle('001', 1000, ['Tactics', 'Opening'], []),
+            puzzle('002', 1000, ['Tactics', 'Endgame'], []),
+            puzzle('003', 1000, ['Strategy', 'Endgame'], []),
+            puzzle('004', 1000, ['Strategy', 'Middlegame'], []),
+        ];
+        const ids = (request: Record<string, string>) =>
+            pickTrainingPuzzles(all, TrainRequestSchema.parse(request), () => 0)
+                .map((p) => p.id)
+                .sort();
+        expect(ids({ types: 'Tactics' })).toEqual(['001', '002']);
+        expect(ids({ types: 'Tactics,Strategy' })).toEqual(['001', '002', '003', '004']);
+        expect(ids({ types: 'Strategy', phases: 'Endgame,Opening' })).toEqual(['003']);
+        expect(ids({ phases: 'Middlegame,Opening' })).toEqual(['001', '004']);
+    });
+
     it('keeps to puzzles that have every bucket asked for', () => {
         const mixed = [
             puzzle('001', 1000, ['Tactics', 'Endgame'], []),
@@ -578,6 +595,10 @@ describe('what there are puzzles for', () => {
         expect(hasPuzzles(sets, { buckets: ['Strategy'], theme: 'Fork' })).toBe(false);
         expect(hasPuzzles(sets, { buckets: ['Tactics', 'Middlegame'] })).toBe(false);
         expect(hasPuzzles(sets, {})).toBe(true);
+        expect(
+            hasPuzzles(sets, { types: ['Strategy', 'Tactics'], phases: ['Opening', 'Endgame'] }),
+        ).toBe(true);
+        expect(hasPuzzles(sets, { types: ['Strategy'], phases: ['Endgame'] })).toBe(false);
         expect(hasPuzzles([], {})).toBe(false);
     });
 });
