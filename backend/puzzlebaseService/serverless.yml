@@ -305,6 +305,33 @@ functions:
           - dynamodb:GetItem
         Resource: ${param:UsersTableArn}
 
+  vote:
+    handler: votes.voteHandler
+    events:
+      - httpApi:
+          path: /puzzlebase/votes
+          method: post
+          authorizer:
+            type: jwt
+            id: ${param:apiAuthorizer}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          - dynamodb:Query
+        Resource: !GetAtt PuzzlebaseTable.Arn
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: !GetAtt PuzzleRunsTable.Arn
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+        Resource: ${param:UsersTableArn}
+
   addContributor:
     handler: contributors.addContributorHandler
     events:

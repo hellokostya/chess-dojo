@@ -29,6 +29,7 @@ import {
     SuggestTagsRequest,
     SuggestTagsResponse,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/suggestions';
+import { VoteRequest, VoteResponse } from '@jackstenglein/chess-dojo-common/src/puzzlebase/votes';
 import { AxiosResponse } from 'axios';
 import { axiosService } from './axiosService';
 
@@ -179,6 +180,13 @@ export function deleteTheme(
 export function listAdminLog(): Promise<AxiosResponse<AdminAction[]>> {
     return axiosService.get<AdminAction[]>('/puzzlebase/admin-log', {
         functionName: 'listAdminLog',
+    });
+}
+
+/** Gives a puzzle a thumbs up (1), a thumbs down (-1), or takes the vote back (0). */
+export function voteOnPuzzle(request: VoteRequest): Promise<AxiosResponse<VoteResponse>> {
+    return axiosService.post<VoteResponse>('/puzzlebase/votes', request, {
+        functionName: 'voteOnPuzzle',
     });
 }
 

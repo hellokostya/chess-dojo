@@ -143,6 +143,16 @@ export const PuzzlebasePuzzleSchema = z.object({
     /** A link to the Lichess study the puzzle was imported from, if any. */
     lichessStudyUrl: z.string().optional(),
 
+    /**
+     * Thumbs up and thumbs down from members who played the puzzle. They are kept apart from the
+     * puzzle itself and added when it is read by a Puzzle Contributor, so they are never saved with
+     * an edit.
+     */
+    upvotes: z.number().int().min(0).optional(),
+    downvotes: z.number().int().min(0).optional(),
+    /** The member's own vote on the puzzle, 1 or -1. Only in the puzzles sent to train on. */
+    myVote: z.union([z.literal(1), z.literal(-1)]).optional(),
+
     /** The time the puzzle was created, in ISO 8601. */
     createdAt: z.string(),
     /** The time the puzzle was last updated, in ISO 8601. */

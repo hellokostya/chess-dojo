@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { TacticsTrainerPage } from '../tactics/TacticsTrainerPage';
 import { TacticsPuzzle } from '../tactics/tacticsPuzzles';
 import { PuzzleInfoPanel, PuzzleNumberAndTags } from './PuzzleInfoPanel';
+import { PuzzleVote } from './PuzzleVote';
 import { ScoreSummary } from './ScoreSummary';
 import { SuggestTagsButton } from './SuggestTagsButton';
 import { TrainSetup } from './TrainSetup';
@@ -276,14 +277,22 @@ export function PuzzleTrainerPage({ client = getPuzzlebaseClient() }: PuzzleTrai
                             />
                         </Stack>
                     )}
-                    renderPuzzleDone={(puzzle) =>
-                        puzzle.id in scores ? (
-                            <ScoreSummary
-                                scoring={scores[puzzle.id].scoring}
-                                failed={scores[puzzle.id].failed}
+                    renderPuzzleDone={(puzzle) => (
+                        <>
+                            {puzzle.id in scores && (
+                                <ScoreSummary
+                                    scoring={scores[puzzle.id].scoring}
+                                    failed={scores[puzzle.id].failed}
+                                />
+                            )}
+                            <PuzzleVote
+                                key={puzzle.id}
+                                client={client}
+                                puzzleId={puzzle.id}
+                                initialVote={puzzle.info?.myVote}
                             />
-                        ) : undefined
-                    }
+                        </>
+                    )}
                     onTrainAgain={() => setStage('setup')}
                 />
             ) : (

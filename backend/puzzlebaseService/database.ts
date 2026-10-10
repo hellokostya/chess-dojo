@@ -6,6 +6,8 @@ import {
     GetItemCommand,
     PutItemCommand,
     QueryCommand,
+    TransactionCanceledException,
+    TransactWriteItemsCommand,
     UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
@@ -18,6 +20,7 @@ import {
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
 import { defaultTaxonomy } from '@jackstenglein/chess-dojo-common/src/puzzlebase/build';
 import { PuzzleSuggestion } from '@jackstenglein/chess-dojo-common/src/puzzlebase/suggestions';
+import { Vote, VoteCounts, voteDelta } from '@jackstenglein/chess-dojo-common/src/puzzlebase/votes';
 import { ApiError } from '../directoryService/api';
 import { dynamo, getUser } from '../directoryService/database';
 
@@ -33,6 +36,9 @@ export { dynamo, getUser };
  * - `META` / `COUNTER`: the number of the last puzzle id handed out.
  * - `SUGGESTION` / `<puzzleId>#<username>`: tags a member suggested for a puzzle, waiting for a
  *   Puzzle Contributor to accept or dismiss them. One per member per puzzle.
+ * - `VOTE` / `<username>#<puzzleId>`: a member's thumbs up (1) or thumbs down (-1) on a puzzle.
+ * - `VOTES` / `<puzzleId>`: the totals of a puzzle's votes, kept apart from the puzzle so editing a
+ *   puzzle can never lose a vote.
  * - `AUDIT` / `<ISO time>#<random>`: something a puzzle admin did, for the admin log.
  */
 export const puzzlebaseTable = process.env.stage + '-puzzlebase';
@@ -44,6 +50,8 @@ const TAXONOMY = 'TAXONOMY';
 const COUNTER = 'COUNTER';
 const SUGGESTION = 'SUGGESTION';
 const AUDIT = 'AUDIT';
+const VOTE = 'VOTE';
+const VOTES = 'VOTES';
 
 /** The most puzzles that a single request may create. */
 export const MAX_PUZZLES_PER_REQUEST = 100;
@@ -594,4 +602,140 @@ export async function listAdminActions(): Promise<AdminAction[]> {
     return (await queryAll(AUDIT))
         .map((item) => withoutKeys<AdminAction>(item))
         .sort((a, b) => b.at.localeCompare(a.at));
+}
+
+// ---------- Votes ----------
+
+/** Returns the totals of every puzzle's votes, by puzzle id. Puzzles nobody voted on are left out. */
+export async function getVoteCounts(): Promise<Record<string, VoteCounts>> {
+    const counts: Record<string, VoteCounts> = {};
+    for (const item of await queryAll(VOTES)) {
+        counts[item.sk] = {
+            upvotes: Math.max(0, item.upvotes ?? 0),
+            downvotes: Math.max(0, item.downvotes ?? 0),
+        };
+    }
+    return counts;
+}
+
+/** Returns the totals of one puzzle's votes. */
+export async function getVoteCountsFor(puzzleId: string): Promise<VoteCounts> {
+    const output = await dynamo.send(
+        new GetItemCommand({
+            TableName: puzzlebaseTable,
+            Key: marshall({ pk: VOTES, sk: puzzleId }),
+        }),
+    );
+    const item = output.Item ? unmarshall(output.Item) : {};
+    return {
+        upvotes: Math.max(0, item.upvotes ?? 0),
+        downvotes: Math.max(0, item.downvotes ?? 0),
+    };
+}
+
+/** Puts a puzzle's vote totals on it, for the puzzles sent to Puzzle Contributors. */
+export function withVotes<T extends { id: string }>(
+    puzzle: T,
+    counts: Record<string, VoteCounts>,
+): T & VoteCounts {
+    return { ...puzzle, ...(counts[puzzle.id] ?? { upvotes: 0, downvotes: 0 }) };
+}
+
+/** Returns every vote a member has cast, by puzzle id. */
+export async function getMyVotes(username: string): Promise<Record<string, 1 | -1>> {
+    const votes: Record<string, 1 | -1> = {};
+    let startKey: Record<string, any> | undefined;
+    do {
+        const output = await dynamo.send(
+            new QueryCommand({
+                TableName: puzzlebaseTable,
+                KeyConditionExpression: 'pk = :pk AND begins_with(sk, :prefix)',
+                ExpressionAttributeValues: marshall({ ':pk': VOTE, ':prefix': `${username}#` }),
+                ExclusiveStartKey: startKey,
+            }),
+        );
+        for (const item of output.Items ?? []) {
+            const row = unmarshall(item);
+            votes[String(row.sk).slice(username.length + 1)] = row.vote === -1 ? -1 : 1;
+        }
+        startKey = output.LastEvaluatedKey;
+    } while (startKey);
+    return votes;
+}
+
+/** How many times to try a vote when another one of the member's lands at the same moment. */
+const MAX_VOTE_ATTEMPTS = 3;
+
+/**
+ * Records a member's vote on a puzzle, replacing their earlier one, and keeps the totals right: the
+ * member's vote and the totals change together or not at all. 0 takes the vote back.
+ * @returns The member's vote and the new totals.
+ */
+export async function castVote(
+    username: string,
+    puzzleId: string,
+    vote: Vote,
+): Promise<VoteCounts & { vote: Vote }> {
+    const voteKey = marshall({ pk: VOTE, sk: `${username}#${puzzleId}` });
+    const totalsKey = marshall({ pk: VOTES, sk: puzzleId });
+
+    for (let attempt = 0; attempt < MAX_VOTE_ATTEMPTS; attempt++) {
+        const earlier = await dynamo.send(
+            new GetItemCommand({ TableName: puzzlebaseTable, Key: voteKey }),
+        );
+        const before: Vote = earlier.Item ? (unmarshall(earlier.Item).vote === -1 ? -1 : 1) : 0;
+        const delta = voteDelta(before, vote);
+
+        // The member's vote must still be what we read, or someone (their other tab) got there first.
+        const unchanged =
+            before === 0
+                ? { ConditionExpression: 'attribute_not_exists(pk)' }
+                : {
+                      ConditionExpression: '#vote = :before',
+                      ExpressionAttributeNames: { '#vote': 'vote' },
+                      ExpressionAttributeValues: marshall({ ':before': before }),
+                  };
+
+        try {
+            await dynamo.send(
+                new TransactWriteItemsCommand({
+                    TransactItems: [
+                        vote === 0
+                            ? { Delete: { TableName: puzzlebaseTable, Key: voteKey, ...unchanged } }
+                            : {
+                                  Put: {
+                                      TableName: puzzlebaseTable,
+                                      Item: marshall({
+                                          pk: VOTE,
+                                          sk: `${username}#${puzzleId}`,
+                                          vote,
+                                          votedAt: new Date().toISOString(),
+                                      }),
+                                      ...unchanged,
+                                  },
+                              },
+                        {
+                            Update: {
+                                TableName: puzzlebaseTable,
+                                Key: totalsKey,
+                                UpdateExpression: 'ADD upvotes :up, downvotes :down',
+                                ExpressionAttributeValues: marshall({
+                                    ':up': delta.upvotes,
+                                    ':down': delta.downvotes,
+                                }),
+                            },
+                        },
+                    ],
+                }),
+            );
+            const counts = await getVoteCountsFor(puzzleId);
+            return { ...counts, vote };
+        } catch (err) {
+            if (err instanceof TransactionCanceledException && attempt < MAX_VOTE_ATTEMPTS - 1) {
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw new ApiError({ statusCode: 409, publicMessage: 'Please try voting again.' });
 }

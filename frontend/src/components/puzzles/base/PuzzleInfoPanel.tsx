@@ -2,6 +2,7 @@ import {
     PuzzlebasePuzzle,
     PuzzlebaseTaxonomy,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
+import { popularity } from '@jackstenglein/chess-dojo-common/src/puzzlebase/votes';
 import { Box, Chip, Divider, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Fragment, ReactNode } from 'react';
@@ -35,6 +36,7 @@ export function PuzzleInfoPanel({
     const facts: [string, ReactNode][] = [
         ['Game', gameLine(puzzle)],
         ['Rating', puzzle.rating],
+        ['Popularity', popularityText(puzzle)],
         ['Result', puzzle.result],
         ['Source', puzzle.composer],
         [
@@ -251,4 +253,12 @@ export function gameLine(
         .join(' ');
 
     return [players, where].filter(Boolean).join(', ');
+}
+
+/** "85% (17 votes)" for a puzzle people voted on, shown to Puzzle Contributors only. */
+function popularityText(puzzle: PuzzlebasePuzzle): string | undefined {
+    const score = popularity(puzzle);
+    if (score === undefined) return undefined;
+    const votes = (puzzle.upvotes ?? 0) + (puzzle.downvotes ?? 0);
+    return `${score}% (${votes} vote${votes === 1 ? '' : 's'})`;
 }

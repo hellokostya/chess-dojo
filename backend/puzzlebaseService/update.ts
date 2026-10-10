@@ -10,7 +10,14 @@ import {
     requireUserInfo,
     success,
 } from '../directoryService/api';
-import { getPuzzle, getTaxonomy, putPuzzle, requireContributor, userInput } from './database';
+import {
+    getPuzzle,
+    getTaxonomy,
+    getVoteCountsFor,
+    putPuzzle,
+    requireContributor,
+    userInput,
+} from './database';
 
 /**
  * Handles requests to update a puzzle: its rating, tags, details, or its position and solution.
@@ -39,7 +46,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         );
 
         await putPuzzle(updated, puzzle.updatedAt);
-        return success(updated);
+        return success({ ...updated, ...(await getVoteCountsFor(updated.id)) });
     } catch (err) {
         return errToApiGatewayProxyResultV2(err);
     }

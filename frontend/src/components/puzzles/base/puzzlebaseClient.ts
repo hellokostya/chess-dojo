@@ -24,6 +24,7 @@ import {
     submitAttempt,
     suggestTags,
     updatePuzzle,
+    voteOnPuzzle,
 } from '@/api/puzzlebaseApi';
 import {
     AdminAction,
@@ -55,6 +56,7 @@ import {
     SuggestTagsRequest,
     SuggestTagsResponse,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/suggestions';
+import { Vote, VoteResponse } from '@jackstenglein/chess-dojo-common/src/puzzlebase/votes';
 import { searchMembersByName } from './memberSearch';
 
 /** A Dojo member found by searching. */
@@ -112,6 +114,9 @@ export interface PuzzlebaseClient {
         request: ResolveSuggestionsRequest,
     ): Promise<PuzzlebasePuzzle>;
 
+    /** Gives a puzzle a thumbs up (1) or down (-1), or takes the vote back (0). After playing it. */
+    vote(puzzleId: string, vote: Vote): Promise<VoteResponse>;
+
     /** Puzzles to train on. Any signed-in member can train. */
     train(query: TrainQuery): Promise<PuzzlebasePuzzle[]>;
     /** Records an attempt at a puzzle: every move tried, wrong ones too, and the time for each. */
@@ -154,6 +159,7 @@ export const apiPuzzlebaseClient: PuzzlebaseClient = {
     resolveSuggestions: async (puzzleId, request) =>
         (await resolveSuggestions(puzzleId, request)).data,
 
+    vote: async (puzzleId, vote) => (await voteOnPuzzle({ puzzleId, vote })).data,
     train: async (query) => (await getTrainingPuzzles(query)).data,
     submitAttempt: async (submission) => (await submitAttempt(submission)).data,
     getPuzzleStats: async (username) => (await getPuzzleStats(username)).data,

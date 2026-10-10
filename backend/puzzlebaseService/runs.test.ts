@@ -160,6 +160,10 @@ beforeEach(() => {
             }
         } else {
             if (name === 'QueryCommand') {
+                // Only puzzles are in this table here; nobody has voted.
+                if (unmarshall(cmd.input.ExpressionAttributeValues)[':pk'] !== 'PUZZLE') {
+                    return Promise.resolve({ Items: [] });
+                }
                 return Promise.resolve({
                     Items: Object.values(puzzles).map((p) =>
                         marshall({ pk: 'PUZZLE', sk: p.id, ...p }),

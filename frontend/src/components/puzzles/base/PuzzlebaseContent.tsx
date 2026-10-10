@@ -45,6 +45,7 @@ import { downloadText } from './downloadFile';
 import { EditPuzzleDialog } from './EditPuzzleDialog';
 import { HeaderStat } from './HeaderStat';
 import { Leaderboard } from './Leaderboard';
+import { PopularPuzzles } from './PopularPuzzles';
 import { PuzzlebaseClient } from './puzzlebaseClient';
 import { PuzzleCard } from './PuzzleCard';
 import { PuzzleTable } from './PuzzleTable';
@@ -242,7 +243,10 @@ export function PuzzlebaseContent({ client, status }: PuzzlebaseContentProps) {
                                 </Button>
                             </Stack>
                         </Stack>
-                        <Leaderboard entries={leaderboard} />
+                        <Stack sx={{ flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+                            <PopularPuzzles puzzles={puzzles} />
+                            <Leaderboard entries={leaderboard} />
+                        </Stack>
                     </Stack>
                 </Container>
                 <Stack direction='row' aria-hidden sx={{ height: 3 }}>

@@ -17,7 +17,7 @@ import {
     requireUserInfo,
     success,
 } from '../directoryService/api';
-import { getPuzzle, getUser, listPuzzles, requireTrainingAccess } from './database';
+import { getMyVotes, getPuzzle, getUser, listPuzzles, requireTrainingAccess } from './database';
 import {
     addToSession,
     addToStats,
@@ -43,8 +43,17 @@ export const trainHandler: APIGatewayProxyHandlerV2 = async (event) => {
         const { username } = requireUserInfo(event);
         await requireTrainingAccess(username);
         const request = parseEvent(event, TrainRequestSchema);
-        const [puzzles, lastSeen] = await Promise.all([listPuzzles(), getLastSeen(username)]);
-        return success(pickTrainingPuzzles(puzzles, request, Math.random, lastSeen));
+        const [puzzles, lastSeen, votes] = await Promise.all([
+            listPuzzles(),
+            getLastSeen(username),
+            getMyVotes(username),
+        ]);
+        // Each puzzle carries the member's own vote on it, so they can see it and change it.
+        return success(
+            pickTrainingPuzzles(puzzles, request, Math.random, lastSeen).map((puzzle) =>
+                votes[puzzle.id] ? { ...puzzle, myVote: votes[puzzle.id] } : puzzle,
+            ),
+        );
     } catch (err) {
         return errToApiGatewayProxyResultV2(err);
     }
