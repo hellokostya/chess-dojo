@@ -253,7 +253,7 @@ export function TrainSetup({
                             </ToggleButtonGroup>
                         </Stack>
 
-                        <Divider sx={{ my: 1.5 }} />
+                        <Divider sx={{ my: 3, borderBottomWidth: 2 }} />
 
                         <Stack sx={{ gap: 1.5 }}>
                             <SectionLabel>In which phases of the game · choose any</SectionLabel>
