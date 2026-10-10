@@ -305,6 +305,26 @@ functions:
           - dynamodb:GetItem
         Resource: ${param:UsersTableArn}
 
+  trainingTags:
+    handler: training.trainingTagsHandler
+    events:
+      - httpApi:
+          path: /puzzlebase/train/tags
+          method: get
+          authorizer:
+            type: jwt
+            id: ${param:apiAuthorizer}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:GetItem
+        Resource: !GetAtt PuzzlebaseTable.Arn
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+        Resource: ${param:UsersTableArn}
+
   vote:
     handler: votes.voteHandler
     events:

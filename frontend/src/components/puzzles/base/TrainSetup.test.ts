@@ -50,3 +50,40 @@ describe('focusQuery', () => {
         );
     });
 });
+
+describe('focusOptions with what there are puzzles for', () => {
+    const available = [
+        { buckets: ['Tactics', 'Endgame'], themes: ['Fork'], count: 3 },
+        { buckets: ['Tactics', 'Middlegame'], themes: ['Pin'], count: 1 },
+        { buckets: ['Strategy', 'Middlegame'], themes: ['Outpost'], count: 2 },
+    ];
+    const offered = (type: Parameters<typeof focusOptions>[1]) =>
+        focusOptions(taxonomy, type, available).map((o) => `${o.kind}:${o.label}`);
+
+    it('only offers themes that tactics puzzles have, for tactics', () => {
+        const options = offered('Tactics');
+        expect(options).toContain('theme:Fork');
+        expect(options).toContain('theme:Pin');
+        expect(options).not.toContain('theme:Skewer');
+        expect(options).not.toContain('theme:Outpost');
+    });
+
+    it('only offers the phases that the type has puzzles in', () => {
+        expect(offered('Tactics')).toEqual(
+            expect.arrayContaining(['bucket:Endgame', 'bucket:Middlegame']),
+        );
+        expect(offered('Tactics')).not.toContain('bucket:Opening');
+        expect(offered('Strategy')).toContain('bucket:Middlegame');
+        expect(offered('Strategy')).not.toContain('bucket:Endgame');
+    });
+
+    it('offers the themes of every puzzle for a mix', () => {
+        expect(offered('Mixed')).toEqual(
+            expect.arrayContaining(['theme:Fork', 'theme:Pin', 'theme:Outpost']),
+        );
+    });
+
+    it('offers nothing but All Themes when there are no puzzles', () => {
+        expect(focusOptions(taxonomy, 'Mixed', []).map((o) => o.label)).toEqual(['All Themes']);
+    });
+});

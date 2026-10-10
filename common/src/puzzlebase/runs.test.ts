@@ -11,6 +11,7 @@ import {
     emptyCounters,
     firstTryRate,
     groupIntoSessions,
+    hasPuzzles,
     MoveRecord,
     pickTrainingPuzzles,
     SESSION_GAP_MS,
@@ -18,6 +19,7 @@ import {
     statsFromAttempts,
     summarizeAttempt,
     toPuzzleAttempt,
+    trainingTagSets,
     TrainRequestSchema,
 } from './runs';
 
@@ -553,5 +555,29 @@ describe('pickTrainingPuzzles with a theme listed under several buckets', () => 
             TrainRequestSchema.parse({ theme: 'Attack on the king', bucket: 'Endgame' }),
         );
         expect(picked.map((p) => p.id)).toEqual(['002']);
+    });
+});
+
+describe('what there are puzzles for', () => {
+    const puzzles = [
+        { buckets: ['Tactics', 'Endgame'], themes: ['Fork'] },
+        { buckets: ['Endgame', 'Tactics'], themes: ['Fork'] },
+        { buckets: ['Strategy', 'Middlegame'], themes: ['Outpost'] },
+    ];
+
+    it('counts puzzles with the same tags together, whatever order they are in', () => {
+        expect(trainingTagSets(puzzles)).toEqual([
+            { buckets: ['Endgame', 'Tactics'], themes: ['Fork'], count: 2 },
+            { buckets: ['Middlegame', 'Strategy'], themes: ['Outpost'], count: 1 },
+        ]);
+    });
+
+    it('knows whether a type, phase and theme find anything', () => {
+        const sets = trainingTagSets(puzzles);
+        expect(hasPuzzles(sets, { buckets: ['Tactics'], theme: 'Fork' })).toBe(true);
+        expect(hasPuzzles(sets, { buckets: ['Strategy'], theme: 'Fork' })).toBe(false);
+        expect(hasPuzzles(sets, { buckets: ['Tactics', 'Middlegame'] })).toBe(false);
+        expect(hasPuzzles(sets, {})).toBe(true);
+        expect(hasPuzzles([], {})).toBe(false);
     });
 });

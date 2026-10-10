@@ -21,6 +21,7 @@ import {
     PuzzleAttempt,
     PuzzleRunsResponse,
     PuzzleStatsResponse,
+    TrainingTagSet,
     TrainQuery,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
 import {
@@ -207,6 +208,13 @@ export function getTrainingPuzzles({ exclude, ...query }: TrainQuery = {}): Prom
     return axiosService.get<PuzzlebasePuzzle[]>('/puzzlebase/train', {
         params: { ...query, exclude: exclude?.join(',') || undefined },
         functionName: 'getTrainingPuzzles',
+    });
+}
+
+/** Fetches the tags the puzzles have, to offer only what there are puzzles for when training. */
+export function getTrainingTags(): Promise<AxiosResponse<TrainingTagSet[]>> {
+    return axiosService.get<TrainingTagSet[]>('/puzzlebase/train/tags', {
+        functionName: 'getTrainingTags',
     });
 }
 

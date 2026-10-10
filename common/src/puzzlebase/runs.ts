@@ -276,6 +276,48 @@ export const TrainRequestSchema = z.object({
 });
 export type TrainRequest = z.infer<typeof TrainRequestSchema>;
 
+/** A set of tags that some puzzles have, and how many do. */
+export interface TrainingTagSet {
+    buckets: string[];
+    themes: string[];
+    count: number;
+}
+
+/**
+ * The tags the puzzles have, for the screen where a member chooses what to train on, so it only
+ * offers what there are puzzles for. Puzzles with the same tags are counted together, and nothing
+ * else about a puzzle is given away.
+ */
+export function trainingTagSets(
+    puzzles: Pick<PuzzlebasePuzzle, 'buckets' | 'themes'>[],
+): TrainingTagSet[] {
+    const sets = new Map<string, TrainingTagSet>();
+    for (const { buckets, themes } of puzzles) {
+        const sortedBuckets = [...buckets].sort();
+        const sortedThemes = [...themes].sort();
+        const key = JSON.stringify([sortedBuckets, sortedThemes]);
+        const set = sets.get(key) ?? { buckets: sortedBuckets, themes: sortedThemes, count: 0 };
+        set.count += 1;
+        sets.set(key, set);
+    }
+    return [...sets.values()];
+}
+
+/**
+ * Whether any puzzle has all the given buckets and the theme, if there is one. Used to leave out
+ * choices that would find nothing.
+ */
+export function hasPuzzles(
+    sets: TrainingTagSet[],
+    wanted: { buckets?: string[]; theme?: string },
+): boolean {
+    return sets.some(
+        (set) =>
+            (wanted.buckets ?? []).every((bucket) => set.buckets.includes(bucket)) &&
+            (wanted.theme === undefined || set.themes.includes(wanted.theme)),
+    );
+}
+
 /**
  * Chooses puzzles to train on from the ones that match the request. Puzzles the person has never
  * attempted come first, in random order. After those come the ones they have attempted, the

@@ -1,7 +1,11 @@
 'use client';
 
 import { PuzzlebaseTaxonomy } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
-import { TrainQuery } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
+import {
+    hasPuzzles,
+    TrainingTagSet,
+    TrainQuery,
+} from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
 import { Bolt, History, PlayArrow } from '@mui/icons-material';
 import {
     Alert,
@@ -63,20 +67,28 @@ const TYPE_BUCKETS = new Set(['Tactics', 'Strategy']);
  * The type itself is chosen with the big buttons, so it is not offered again, and with Tactics
  * chosen the themes that only belong to Strategy are left out, and the other way around.
  */
-export function focusOptions(taxonomy: PuzzlebaseTaxonomy, type: TrainType): FocusOption[] {
+export function focusOptions(
+    taxonomy: PuzzlebaseTaxonomy,
+    type: TrainType,
+    available?: TrainingTagSet[],
+): FocusOption[] {
+    // Only choices that find puzzles. Until we know what there is, everything is offered.
+    const typeBuckets = type === 'Mixed' ? [] : [type];
+    const found = (wanted: { buckets?: string[]; theme?: string }) =>
+        available === undefined ||
+        hasPuzzles(available, { ...wanted, buckets: [...typeBuckets, ...(wanted.buckets ?? [])] });
+
     const options: FocusOption[] = [ANYTHING];
     for (const [bucket, themes] of Object.entries(taxonomy.buckets)) {
         const isType = TYPE_BUCKETS.has(bucket);
         if (isType && type !== 'Mixed' && bucket !== type) continue;
-        if (!isType) {
+        if (!isType && found({ buckets: [bucket] })) {
             options.push({ kind: 'bucket', label: bucket, group: bucket });
         }
         options.push(
-            ...sortThemes(themes).map((theme) => ({
-                kind: 'theme' as const,
-                label: theme,
-                group: bucket,
-            })),
+            ...sortThemes(themes)
+                .filter((theme) => found({ theme }))
+                .map((theme) => ({ kind: 'theme' as const, label: theme, group: bucket })),
         );
     }
     return options;
@@ -99,6 +111,8 @@ export function focusQuery(
 
 interface TrainSetupProps {
     taxonomy: PuzzlebaseTaxonomy;
+    /** The tags the puzzles have, so only choices that find puzzles are offered. */
+    available?: TrainingTagSet[];
     /** The member's own rating, which the default puzzle rating range is built around. */
     userRating: number;
     /** Whether puzzles are being fetched. */
@@ -112,7 +126,14 @@ interface TrainSetupProps {
  * Where a member chooses what to train on: tactics, strategy or a mix, whether to focus on one
  * phase or theme, how hard the puzzles are, and for how long. The rating range starts as all ratings.
  */
-export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: TrainSetupProps) {
+export function TrainSetup({
+    taxonomy,
+    available,
+    userRating,
+    loading,
+    message,
+    onStart,
+}: TrainSetupProps) {
     const aroundYou = useMemo(() => defaultRatingWindow(userRating), [userRating]);
     const [range, setRange] = useState<[number, number]>(ALL_RATINGS);
     const [type, setType] = useState<TrainType>('Tactics');
@@ -120,12 +141,15 @@ export function TrainSetup({ taxonomy, userRating, loading, message, onStart }: 
     const [length, setLength] = useState<SessionLength>(20);
     const allRatings = range[0] === ALL_RATINGS[0] && range[1] === ALL_RATINGS[1];
 
-    const options = useMemo(() => focusOptions(taxonomy, type), [taxonomy, type]);
+    const options = useMemo(
+        () => focusOptions(taxonomy, type, available),
+        [taxonomy, type, available],
+    );
 
     /** Picks a type of puzzle. A focus that does not belong to it is dropped. */
     const chooseType = (next: TrainType) => {
         setType(next);
-        const stillThere = focusOptions(taxonomy, next).some(
+        const stillThere = focusOptions(taxonomy, next, available).some(
             (o) => o.kind === focus.kind && o.label === focus.label && o.group === focus.group,
         );
         if (!stillThere) setFocus(ANYTHING);

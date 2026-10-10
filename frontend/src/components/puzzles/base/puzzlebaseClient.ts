@@ -14,6 +14,7 @@ import {
     getPuzzleStats,
     getTaxonomy,
     getTrainingPuzzles,
+    getTrainingTags,
     importLichessStudy,
     listAdminLog,
     listContributors,
@@ -48,6 +49,7 @@ import {
     PuzzleAttempt,
     PuzzleRunsResponse,
     PuzzleStatsResponse,
+    TrainingTagSet,
     TrainQuery,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
 import {
@@ -117,6 +119,8 @@ export interface PuzzlebaseClient {
     /** Gives a puzzle a thumbs up (1) or down (-1), or takes the vote back (0). After playing it. */
     vote(puzzleId: string, vote: Vote): Promise<VoteResponse>;
 
+    /** The tags the puzzles have, so only choices that find puzzles are offered when training. */
+    trainingTags(): Promise<TrainingTagSet[]>;
     /** Puzzles to train on. Any signed-in member can train. */
     train(query: TrainQuery): Promise<PuzzlebasePuzzle[]>;
     /** Records an attempt at a puzzle: every move tried, wrong ones too, and the time for each. */
@@ -160,6 +164,7 @@ export const apiPuzzlebaseClient: PuzzlebaseClient = {
         (await resolveSuggestions(puzzleId, request)).data,
 
     vote: async (puzzleId, vote) => (await voteOnPuzzle({ puzzleId, vote })).data,
+    trainingTags: async () => (await getTrainingTags()).data,
     train: async (query) => (await getTrainingPuzzles(query)).data,
     submitAttempt: async (submission) => (await submitAttempt(submission)).data,
     getPuzzleStats: async (username) => (await getPuzzleStats(username)).data,

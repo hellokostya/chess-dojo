@@ -21,7 +21,7 @@ vi.mock('../directoryService/database', () => ({
 vi.mock('./runsDatabase', () => ({ getLastSeen: lastSeenMock }));
 
 import { handler as listPuzzles } from './list';
-import { trainHandler } from './training';
+import { trainHandler, trainingTagsHandler } from './training';
 import { voteHandler } from './votes';
 
 const puzzle = (id: string) => ({
@@ -220,5 +220,26 @@ describe('seeing votes', () => {
         expect(byId['001'].myVote).toBe(-1);
         expect(byId['002'].myVote).toBeUndefined();
         expect(byId['001'].upvotes).toBeUndefined();
+    });
+});
+
+describe('the tags to offer for training', () => {
+    it('gives the tag sets of the puzzles, and nothing else about them', async () => {
+        puzzles = {
+            '001': { ...puzzle('001'), buckets: ['Tactics'], themes: ['Fork'] },
+            '002': { ...puzzle('002'), buckets: ['Tactics'], themes: ['Fork'] },
+            '003': { ...puzzle('003'), buckets: ['Strategy'], themes: [] },
+        };
+        const { status, body } = await call(trainingTagsHandler, event('ann'));
+        expect(status).toBe(200);
+        expect(body).toEqual([
+            { buckets: ['Tactics'], themes: ['Fork'], count: 2 },
+            { buckets: ['Strategy'], themes: [], count: 1 },
+        ]);
+    });
+
+    it('is closed to members while training is not open', async () => {
+        process.env.PUZZLEBASE_TRAINING_OPEN = 'false';
+        expect((await call(trainingTagsHandler, event('ann'))).status).toBe(403);
     });
 });

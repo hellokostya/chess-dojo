@@ -4,6 +4,7 @@ import {
     AttemptSubmissionSchema,
     pickTrainingPuzzles,
     toPuzzleAttempt,
+    trainingTagSets,
     TrainRequestSchema,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
 import { rateAttempt } from '@jackstenglein/chess-dojo-common/src/puzzlebase/scoring';
@@ -54,6 +55,22 @@ export const trainHandler: APIGatewayProxyHandlerV2 = async (event) => {
                 votes[puzzle.id] ? { ...puzzle, myVote: votes[puzzle.id] } : puzzle,
             ),
         );
+    } catch (err) {
+        return errToApiGatewayProxyResultV2(err);
+    }
+};
+
+/**
+ * Handles requests for the tags the puzzles have, so the screen where a member chooses what to train
+ * on only offers what there are puzzles for. Whoever can train can ask. Nothing about a puzzle is
+ * given away beyond its tags.
+ */
+export const trainingTagsHandler: APIGatewayProxyHandlerV2 = async (event) => {
+    try {
+        console.log('Event: %j', event);
+        const { username } = requireUserInfo(event);
+        await requireTrainingAccess(username);
+        return success(trainingTagSets(await listPuzzles()));
     } catch (err) {
         return errToApiGatewayProxyResultV2(err);
     }

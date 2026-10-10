@@ -5,6 +5,7 @@ import { getCurrentRating } from '@/database/user';
 import { PuzzlebaseTaxonomy } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
 import {
     AttemptSubmission,
+    TrainingTagSet,
     TrainQuery,
 } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
 import { AttemptScoring } from '@jackstenglein/chess-dojo-common/src/puzzlebase/scoring';
@@ -44,6 +45,7 @@ export function PuzzleTrainerPage({ client = getPuzzlebaseClient() }: PuzzleTrai
     const { user } = useAuth();
     const [stage, setStage] = useState<'setup' | 'loading' | 'training'>('setup');
     const [taxonomy, setTaxonomy] = useState<PuzzlebaseTaxonomy>({ buckets: {} });
+    const [available, setAvailable] = useState<TrainingTagSet[]>();
     const [puzzles, setPuzzles] = useState<TacticsPuzzle[]>([]);
     const [session, setSession] = useState(0);
     const [message, setMessage] = useState<string>();
@@ -78,6 +80,21 @@ export function PuzzleTrainerPage({ client = getPuzzlebaseClient() }: PuzzleTrai
             })
             .catch(() => {
                 // The server decides when training starts.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [client]);
+
+    useEffect(() => {
+        let cancelled = false;
+        Promise.resolve()
+            .then(() => client.trainingTags())
+            .then((tags) => {
+                if (!cancelled) setAvailable(tags);
+            })
+            .catch(() => {
+                // Without it every theme is offered, and asking for one with no puzzles says so.
             });
         return () => {
             cancelled = true;
@@ -298,6 +315,7 @@ export function PuzzleTrainerPage({ client = getPuzzlebaseClient() }: PuzzleTrai
             ) : (
                 <TrainSetup
                     taxonomy={taxonomy}
+                    available={available}
                     userRating={getCurrentRating(user)}
                     loading={stage === 'loading'}
                     message={message}
