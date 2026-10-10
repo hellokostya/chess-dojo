@@ -2,7 +2,7 @@
 
 import { PuzzlebaseTaxonomy } from '@jackstenglein/chess-dojo-common/src/puzzlebase/api';
 import { TrainQuery } from '@jackstenglein/chess-dojo-common/src/puzzlebase/runs';
-import { Bolt, History, PlayArrow, Psychology, Shuffle } from '@mui/icons-material';
+import { Bolt, History, PlayArrow, Psychology } from '@mui/icons-material';
 import {
     Alert,
     Autocomplete,
@@ -40,7 +40,7 @@ const TRAIN_TYPES: TrainType[] = ['Tactics', 'Strategy', 'Mixed'];
 const TYPE_STYLE: Record<TrainType, { color: string; icon: ReactNode }> = {
     Tactics: { color: '#2e7d32', icon: <Bolt /> },
     Strategy: { color: '#b88a00', icon: <Psychology /> },
-    Mixed: { color: '#e65100', icon: <Shuffle /> },
+    Mixed: { color: '#e65100', icon: <CompareArrows /> },
 };
 
 /** One thing the member can choose to focus on: anything, a phase of the game, or one theme. */
