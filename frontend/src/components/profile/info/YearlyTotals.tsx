@@ -204,7 +204,7 @@ export function YearlyTotals({ owner }: { owner: string }) {
     );
 }
 
-/** A year's time as one bar split into its categories' colours. */
+/** A year's time as one bar split into its categories' colors. */
 function CategorySplit({
     total,
     categories,

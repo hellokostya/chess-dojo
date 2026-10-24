@@ -4,8 +4,8 @@ import {
     Checkbox,
     FormControlLabel,
     IconButton,
+    Menu,
     MenuItem,
-    Popover,
     Stack,
     TextField,
     Tooltip,
@@ -86,7 +86,7 @@ export function useHeatmapOptions() {
 
 /**
  * Renders a settings button for the heatmap. The options it opens (what to measure,
- * the daily goal that sets the colour scale, and single-colour mode) are rarely
+ * the daily goal that sets the color scale, and single-color mode) are rarely
  * changed, so they stay out of the way until asked for.
  */
 export function HeatmapSettingsButton() {
@@ -117,7 +117,7 @@ export function HeatmapSettingsButton() {
                     <Settings fontSize='small' />
                 </IconButton>
             </Tooltip>
-            <Popover
+            <Menu
                 open={Boolean(anchorEl)}
                 anchorEl={anchorEl}
                 onClose={() => setAnchorEl(null)}
@@ -168,7 +168,7 @@ export function HeatmapSettingsButton() {
                         slotProps={{ typography: { variant: 'body2' } }}
                     />
                 </Stack>
-            </Popover>
+            </Menu>
         </>
     );
 }

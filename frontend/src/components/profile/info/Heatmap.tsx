@@ -381,15 +381,18 @@ export function Heatmap({
                         gap: 0.75,
                     }}
                 >
-                    {title && (
-                        <LocalFireDepartment
-                            fontSize='small'
-                            sx={{ color: 'dojoOrange.main' }}
-                            aria-hidden
-                        />
+                    {title ? (
+                        <>
+                            <LocalFireDepartment
+                                fontSize='small'
+                                sx={{ color: 'dojoOrange.main' }}
+                                aria-hidden
+                            />
+                            {title}
+                        </>
+                    ) : (
+                        totalLine
                     )}
-                    {title}
-                    {!title && totalLine}
                 </Typography>
 
                 <Stack direction='row' sx={{ alignItems: 'center', gap: 0.25 }}>
@@ -525,15 +528,7 @@ export function Heatmap({
                     sx={{ color: 'text.secondary', mt: 0.25 }}
                     data-testid='heatmap-total'
                 >
-                    {t('lastTwelveMonths', {
-                        total:
-                            field === 'dojoPoints'
-                                ? t('totalDojoPointsLine', {
-                                      points: Math.round(10 * totalDojoPoints) / 10,
-                                      description: '',
-                                  }).trim()
-                                : formatTime(totalMinutesSpent, tCommon),
-                    })}
+                    {totalLine}
                 </Typography>
             )}
 
@@ -747,8 +742,8 @@ function DayDetails({
 }
 
 /**
- * Renders an info button whose popup explains the heatmap: the colour scale and
- * what each category colour and icon means. Opens on hover, and on tap for phones.
+ * Renders an info button whose popup explains the heatmap: the color scale and
+ * what each category color and icon means. Opens on hover, and on tap for phones.
  */
 function HeatmapLegendButton({ scale }: { scale: ReactNode }) {
     const t = useTranslations('profile.info.heatmap');

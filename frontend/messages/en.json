@@ -468,7 +468,7 @@
                 "historyError": "Couldn't load your training history.",
                 "noTimeLogged": "No time logged yet.",
                 "lastTwelveMonths": "Last 12 Months: {total}",
-                "legend": "What the colours mean",
+                "legend": "What the colors mean",
                 "settings": "Heatmap settings",
                 "title": "Heatmap",
                 "dailyGoal": "Daily goal {time}",
