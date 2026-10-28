@@ -1,12 +1,14 @@
 import { ChesscomGame } from '@/api/external/chesscom';
 import { LichessGame } from '@/api/external/lichess';
+import { OtbTournament } from '@/api/external/otb';
 import { RatingSystem } from '@/database/user';
 import { fideDpTable } from '@jackstenglein/chess-dojo-common/src/ratings/performanceRating';
 
 export type ResultOutcome = 'win' | 'loss' | 'draw';
 
-/** Platforms with unified results, fetched live from each site. */
-export type ResultPlatform = RatingSystem.Lichess | RatingSystem.Chesscom;
+/** Platforms with unified results: online (live fetch) and OTB (OTB service). */
+export type ResultPlatform =
+    RatingSystem.Lichess | RatingSystem.Chesscom | RatingSystem.Fide | RatingSystem.Uscf;
 
 export interface UnifiedResult {
     id: string;
@@ -17,7 +19,8 @@ export interface UnifiedResult {
     opponent: string;
     opponentRating?: number;
     myRating?: number;
-    color: 'white' | 'black';
+    /** 'unknown' for USCF games where color wasn't recorded. */
+    color: 'white' | 'black' | 'unknown';
     outcome: ResultOutcome;
     /** e.g. bullet/blitz/rapid/classical/daily. */
     timeClass: string;
@@ -117,6 +120,92 @@ export interface ResultsBreakdown {
     winRate: number;
 }
 
+/** OTB time control (FIDE type / USCF system) to tab time class. */
+function otbTimeClass(code?: string): string {
+    switch ((code || '').toLowerCase()) {
+        case 'standard':
+        case 'r':
+            return 'classical';
+        case 'rapid':
+        case 'q':
+            return 'rapid';
+        default:
+            return 'blitz';
+    }
+}
+
+function otbColor(color?: string): 'white' | 'black' | 'unknown' {
+    const c = (color || '').toLowerCase();
+    return c === 'white' || c === 'black' ? c : 'unknown';
+}
+
+function otbOutcome(score?: number): ResultOutcome | undefined {
+    if (score === 1) return 'win';
+    if (score === 0.5) return 'draw';
+    if (score === 0) return 'loss';
+    return undefined;
+}
+
+/**
+ * Converts one FIDE tournament's per-opponent rows into unified results.
+ * Multi-game aggregate rows are skipped (a result can't be attributed).
+ */
+export function toUnifiedFideResults(tournament: OtbTournament, index: number): UnifiedResult[] {
+    const date = Date.parse(tournament.start || '') || 0;
+    const out: UnifiedResult[] = [];
+    (tournament.rounds || []).forEach((g, i) => {
+        if (g.games !== 1) return;
+        const outcome = otbOutcome(g.score);
+        if (!outcome) return;
+        out.push({
+            id: `fide-${index}-${i}`,
+            platform: RatingSystem.Fide,
+            url: tournament.report_url || '',
+            date,
+            opponent: g.opp,
+            opponentRating: g.rating && g.rating > 0 ? g.rating : undefined,
+            myRating: undefined,
+            color: otbColor(g.color),
+            outcome,
+            timeClass: otbTimeClass(tournament.rating_type),
+        });
+    });
+    return out;
+}
+
+/**
+ * Converts one USCF section's per-game rows into unified results.
+ * Opponent ratings and per-game dates are not published by US Chess.
+ * Sections flagged fide_matched contribute only their USCF-only games —
+ * shared games are already covered by the FIDE side (FIDE takes precedence).
+ */
+export function toUnifiedUscfResults(
+    section: OtbTournament,
+    uscfId: string,
+    index: number,
+): UnifiedResult[] {
+    const date = Date.parse(section.start || '') || 0;
+    const rows = section.fide_matched === true ? (section.uscf_only ?? []) : (section.rounds ?? []);
+    const out: UnifiedResult[] = [];
+    rows.forEach((g, i) => {
+        const outcome = otbOutcome(g.score);
+        if (!outcome) return;
+        out.push({
+            id: `uscf-${index}-${i}`,
+            platform: RatingSystem.Uscf,
+            url: `https://ratings.uschess.org/player/${uscfId}`,
+            date,
+            opponent: g.opp,
+            opponentRating: undefined,
+            myRating: undefined,
+            color: otbColor(g.color),
+            outcome,
+            timeClass: otbTimeClass(g.system),
+        });
+    });
+    return out;
+}
+
 function summarize(results: UnifiedResult[]): ResultsBreakdown {
     const games = results.length;
     const wins = results.filter((r) => r.outcome === 'win').length;
@@ -129,7 +218,8 @@ function summarize(results: UnifiedResult[]): ResultsBreakdown {
 /**
  * FIDE performance rating for a set of games (average opponent rating plus
  * the dp offset for the score percentage). Only games with a known opponent
- * rating count, since a performance without opponent ratings is meaningless.
+ * rating count — unrated games (e.g. US Chess) are excluded entirely, since
+ * a performance without opponent ratings is meaningless.
  */
 export function getFidePerformance(games: UnifiedResult[]): number | undefined {
     const rated = games.filter((g) => g.opponentRating !== undefined && g.opponentRating > 0);
@@ -205,7 +295,12 @@ export function aggregateResults(results: UnifiedResult[]): AggregatedResults {
     const byPlatform: AggregatedResults['byPlatform'] = {};
     const byTimeClassResults: Record<string, UnifiedResult[]> = {};
 
-    for (const platform of [RatingSystem.Lichess, RatingSystem.Chesscom] as const) {
+    for (const platform of [
+        RatingSystem.Lichess,
+        RatingSystem.Chesscom,
+        RatingSystem.Fide,
+        RatingSystem.Uscf,
+    ] as const) {
         const platformResults = results.filter((r) => r.platform === platform);
         if (platformResults.length > 0) {
             byPlatform[platform] = summarize(platformResults);

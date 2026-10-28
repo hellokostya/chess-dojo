@@ -2,13 +2,14 @@
 
 import { fetchChesscomArchiveGames } from '@/api/external/chesscom';
 import { lichessApi } from '@/api/external/lichess';
+import { OtbPayload, OtbTournament, pollOtbPayload } from '@/api/external/otb';
 import { RequestSnackbar, useRequest } from '@/api/Request';
 import { useAuth } from '@/auth/Auth';
 import { Link } from '@/components/navigation/Link';
 import { getRatingUsername, hideRatingUsername, RatingSystem, User } from '@/database/user';
 import LoadingPage from '@/loading/LoadingPage';
 import { KingIcon } from '@/style/ChessIcons';
-import { RatingSystemIcon } from '@/style/RatingSystemIcons';
+import { FideIcon, RatingSystemIcon, UscfIcon } from '@/style/RatingSystemIcons';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
     Accordion,
@@ -34,6 +35,7 @@ import {
 } from '@mui/material';
 import { useTranslations } from 'next-intl';
 import { ReactNode, useEffect, useState } from 'react';
+import { SiChessdotcom, SiLichess } from 'react-icons/si';
 import {
     AggregatedResults,
     aggregateResults,
@@ -41,7 +43,9 @@ import {
     ResultOutcome,
     ResultsBreakdown,
     toUnifiedChesscomResult,
+    toUnifiedFideResults,
     toUnifiedLichessResult,
+    toUnifiedUscfResults,
     UnifiedResult,
 } from './results';
 
@@ -63,6 +67,7 @@ const MAX_GAMES_PER_PLATFORM = 300;
 const MAX_RECENT_GAMES = 1000;
 const MAX_RECENT_SESSIONS = 60;
 const ONLINE_PLATFORMS = [RatingSystem.Chesscom, RatingSystem.Lichess] as const;
+const OTB_PLATFORMS = [RatingSystem.Fide, RatingSystem.Uscf] as const;
 
 /** Theme color token for a given result outcome. */
 function outcomeColor(outcome: ResultOutcome): string {
@@ -94,6 +99,12 @@ interface SessionStats {
     percentage: number;
     /** FIDE performance rating, or undefined when no opponent ratings are known. */
     performance?: number;
+    /** Points scored with White and number of games played with White. */
+    whiteScore: number;
+    whiteGames: number;
+    /** Points scored with Black and number of games played with Black. */
+    blackScore: number;
+    blackGames: number;
 }
 
 /** Score, percentage and FIDE performance rating for a set of games. */
@@ -104,6 +115,11 @@ function getSessionStats(games: UnifiedResult[]): SessionStats {
     const score = wins + draws / 2;
     const percentage = games.length > 0 ? (score / games.length) * 100 : 0;
     const performance = getFidePerformance(games);
+    const scoreOf = (subset: UnifiedResult[]) =>
+        subset.filter((g) => g.outcome === 'win').length +
+        subset.filter((g) => g.outcome === 'draw').length / 2;
+    const whiteGamesList = games.filter((g) => g.color === 'white');
+    const blackGamesList = games.filter((g) => g.color === 'black');
     return {
         wins,
         losses,
@@ -111,6 +127,10 @@ function getSessionStats(games: UnifiedResult[]): SessionStats {
         score,
         percentage,
         performance,
+        whiteScore: scoreOf(whiteGamesList),
+        whiteGames: whiteGamesList.length,
+        blackScore: scoreOf(blackGamesList),
+        blackGames: blackGamesList.length,
     };
 }
 
@@ -163,7 +183,10 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
     const [timeControl, setTimeControl] = useState<TimeControl>('classical');
     const [includeLichess, setIncludeLichess] = useState(true);
     const [includeChesscom, setIncludeChesscom] = useState(true);
+    const [includeFide, setIncludeFide] = useState(true);
+    const [includeUscf, setIncludeUscf] = useState(true);
     const request = useRequest<UnifiedResult[]>();
+    const otbRequest = useRequest<OtbPayload>();
     const lichessUsername = getRatingUsername(user, RatingSystem.Lichess);
     const showLichess =
         !!lichessUsername && (isOwnProfile || !hideRatingUsername(user, RatingSystem.Lichess));
@@ -172,8 +195,21 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
     const showChesscom =
         !!chesscomUsername && (isOwnProfile || !hideRatingUsername(user, RatingSystem.Chesscom));
 
+    const fideId = getRatingUsername(user, RatingSystem.Fide);
+    const showFide = !!fideId && (isOwnProfile || !hideRatingUsername(user, RatingSystem.Fide));
+
+    const uscfId = getRatingUsername(user, RatingSystem.Uscf);
+    const showUscf = !!uscfId && (isOwnProfile || !hideRatingUsername(user, RatingSystem.Uscf));
+    const otbAvailable = showFide || showUscf;
+
+    // Online and OTB are fully separate views with separate stats — never mixed.
+    // OTB first and default: it is the primary view for rated tournament players.
+    const [source, setSource] = useState<'online' | 'otb'>(() => (otbAvailable ? 'otb' : 'online'));
+    const isOtb = source === 'otb';
+
     const fetchLichessGames = showLichess && includeLichess;
     const fetchChesscomGames = showChesscom && includeChesscom;
+
     useEffect(() => {
         if (!showLichess && !showChesscom) {
             return;
@@ -269,7 +305,38 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
         windowMonths,
     ]);
 
-    if (!showLichess && !showChesscom) {
+    // OTB history comes from the OTB service (backend/otbService), which
+    // scrapes FIDE/US Chess asynchronously. Fetched on demand when the OTB
+    // view is selected; the include toggles only filter at render time.
+    useEffect(() => {
+        if (!isOtb || !otbAvailable || otbRequest.data || otbRequest.isLoading()) {
+            return;
+        }
+        const controller = new AbortController();
+        otbRequest.onStart();
+        // Only send IDs the viewer is allowed to see.
+        const ids = {
+            fideId: showFide ? fideId : undefined,
+            uscfId: showUscf ? uscfId : undefined,
+        };
+        pollOtbPayload(ids, undefined, controller.signal)
+            .then((payload) => {
+                if (!controller.signal.aborted) {
+                    otbRequest.onSuccess(payload);
+                }
+            })
+            .catch((err) => {
+                if (!controller.signal.aborted) {
+                    otbRequest.onFailure(err);
+                }
+            });
+        return () => controller.abort();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOtb, showFide, fideId, showUscf, uscfId]);
+
+    const onlineAvailable = showLichess || showChesscom;
+
+    if (!onlineAvailable && !otbAvailable) {
         return (
             <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center' }}>
                 <Typography>{t('emptyNoAccounts')}</Typography>
@@ -284,22 +351,107 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
         );
     }
 
-    if ((!request.isSent() || request.isLoading()) && !request.data) {
+    if (isOtb && !otbAvailable) {
+        return (
+            <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center' }}>
+                <Typography>{t('emptyNoOtbAccounts')}</Typography>
+                {isOwnProfile && (
+                    <Typography>
+                        {t.rich('emptyConnectOtbAccounts', {
+                            link: (chunks: ReactNode) => <Link href='/profile/edit'>{chunks}</Link>,
+                        })}
+                    </Typography>
+                )}
+            </Stack>
+        );
+    }
+
+    if (!isOtb && !onlineAvailable) {
+        return (
+            <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center' }}>
+                <Typography>{t('emptyNoAccounts')}</Typography>
+                {isOwnProfile && (
+                    <Typography>
+                        {t.rich('emptyConnectAccounts', {
+                            link: (chunks: ReactNode) => <Link href='/profile/edit'>{chunks}</Link>,
+                        })}
+                    </Typography>
+                )}
+            </Stack>
+        );
+    }
+
+    if (
+        (isOtb
+            ? !otbRequest.isSent() || otbRequest.isLoading()
+            : !request.isSent() || request.isLoading()) &&
+        !(isOtb ? otbRequest.data : request.data)
+    ) {
         return <LoadingPage />;
     }
 
     const allResults = request.data ?? [];
-    const results = allResults.filter(
+    const onlineResults = allResults.filter(
         (r) =>
             r.timeClass === timeControl &&
             ((r.platform === RatingSystem.Lichess && includeLichess) ||
                 (r.platform === RatingSystem.Chesscom && includeChesscom)),
     );
 
+    const cutoffMs = (() => {
+        if (windowMonths === undefined) return 0;
+        const c = new Date();
+        c.setMonth(c.getMonth() - windowMonths);
+        return c.getTime();
+    })();
+
+    // OTB games become one session per tournament/section (newest first).
+    // Blitz time controls are excluded, matching the tab's rapid/classical policy.
+    const otbSessions: GameSession[] = [];
+    const otbPayload = otbRequest.data;
+    if (otbPayload) {
+        const pushSessions = (
+            tournaments: OtbTournament[] | undefined,
+            convert: (t: OtbTournament, i: number) => UnifiedResult[],
+            prefix: string,
+        ) => {
+            (tournaments ?? []).forEach((t, ti) => {
+                const games = convert(t, ti).filter(
+                    (g) => g.date >= cutoffMs && g.timeClass === timeControl,
+                );
+                if (games.length === 0) return;
+                const start = Date.parse(t.start || '') || 0;
+                otbSessions.push({
+                    id: `${prefix}-${ti}`,
+                    label: t.name,
+                    games,
+                    start,
+                    end: start,
+                });
+            });
+        };
+        if (includeFide) {
+            pushSessions(otbPayload.tournaments, toUnifiedFideResults, 'fide');
+        }
+        if (includeUscf && otbPayload.uschess) {
+            const uscfId = otbPayload.uschess.uscf_id ?? '';
+            pushSessions(
+                otbPayload.uschess.tournaments,
+                (s, si) => toUnifiedUscfResults(s, uscfId, si),
+                'uscf',
+            );
+        }
+    }
+    const otbGames = otbSessions.flatMap((s) => s.games);
+
+    const results = isOtb ? otbGames : onlineResults;
     const aggregated = aggregateResults(results);
-    // Games group by calendar month, newest first, under the display caps.
+    // Online games group by calendar month; OTB games already arrived in
+    // per-tournament sessions. Newest first under the display caps.
     const recentSessions = (() => {
-        const sessions = groupByMonth(results).sort((a, b) => b.start - a.start);
+        const sessions = (isOtb ? otbSessions : groupByMonth(onlineResults)).sort(
+            (a, b) => b.start - a.start,
+        );
         const picked: GameSession[] = [];
         let gameCount = 0;
         for (const session of sessions) {
@@ -314,9 +466,35 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
 
     return (
         <Stack spacing={3}>
+            {onlineAvailable && otbAvailable && (
+                <ToggleButtonGroup
+                    exclusive
+                    fullWidth
+                    size='large'
+                    value={source}
+                    onChange={(_, value: 'online' | 'otb' | null) => value && setSource(value)}
+                    aria-label={t('sourceToggle')}
+                >
+                    <ToggleButton value='otb'>
+                        <Stack direction='row' spacing={0.75} sx={{ alignItems: 'center' }}>
+                            <FideIcon size='small' />
+                            <UscfIcon size='small' />
+                            {t('overTheBoard')}
+                        </Stack>
+                    </ToggleButton>
+                    <ToggleButton value='online'>
+                        <Stack direction='row' spacing={0.75} sx={{ alignItems: 'center' }}>
+                            <SiLichess size={15} />
+                            <SiChessdotcom size={15} />
+                            {t('online')}
+                        </Stack>
+                    </ToggleButton>
+                </ToggleButtonGroup>
+            )}
             <RequestSnackbar request={request} />
+            {isOtb && <RequestSnackbar request={otbRequest} />}
 
-            <SummaryCard aggregated={aggregated} t={t} />
+            <SummaryCard aggregated={aggregated} isOtb={isOtb} t={t} />
 
             <Stack
                 direction={{ xs: 'column', sm: 'row' }}
@@ -336,7 +514,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
                     <Typography variant='body1' sx={{ fontWeight: 600 }}>
                         {t('resultsFor')}
                     </Typography>
-                    {showChesscom && (
+                    {showChesscom && !isOtb && (
                         <Stack direction='row' spacing={0.5} sx={{ alignItems: 'center' }}>
                             <RatingSystemIcon system={RatingSystem.Chesscom} size='small' />
                             <Link
@@ -348,10 +526,10 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
                             </Link>
                         </Stack>
                     )}
-                    {showLichess && showChesscom && (
+                    {!isOtb && showLichess && showChesscom && (
                         <Typography sx={{ color: 'text.secondary' }}>·</Typography>
                     )}
-                    {showLichess && (
+                    {!isOtb && showLichess && (
                         <Stack direction='row' spacing={0.5} sx={{ alignItems: 'center' }}>
                             <RatingSystemIcon system={RatingSystem.Lichess} size='small' />
                             <Link
@@ -360,6 +538,33 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
                                 rel='noopener noreferrer'
                             >
                                 {lichessUsername}
+                            </Link>
+                        </Stack>
+                    )}
+                    {isOtb && showFide && (
+                        <Stack direction='row' spacing={0.5} sx={{ alignItems: 'center' }}>
+                            <RatingSystemIcon system={RatingSystem.Fide} size='small' />
+                            <Link
+                                href={`https://ratings.fide.com/profile/${fideId}`}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                            >
+                                {fideId}
+                            </Link>
+                        </Stack>
+                    )}
+                    {isOtb && showUscf && showFide && (
+                        <Typography sx={{ color: 'text.secondary' }}>·</Typography>
+                    )}
+                    {isOtb && showUscf && (
+                        <Stack direction='row' spacing={0.5} sx={{ alignItems: 'center' }}>
+                            <RatingSystemIcon system={RatingSystem.Uscf} size='small' />
+                            <Link
+                                href={`https://ratings.uschess.org/player/${uscfId}`}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                            >
+                                {uscfId}
                             </Link>
                         </Stack>
                     )}
@@ -393,7 +598,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
                     ))}
                 </ToggleButtonGroup>
 
-                {(showLichess || showChesscom) && (
+                {!isOtb && (showLichess || showChesscom) && (
                     <Stack direction='row' spacing={0} sx={{ alignItems: 'center' }}>
                         <FormControlLabel
                             control={
@@ -431,13 +636,75 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ user }) => {
                         />
                     </Stack>
                 )}
+                {isOtb && (showFide || showUscf) && (
+                    <Stack direction='row' spacing={0} sx={{ alignItems: 'center' }}>
+                        {showFide && (
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        size='small'
+                                        checked={includeFide}
+                                        onChange={(e) => setIncludeFide(e.target.checked)}
+                                    />
+                                }
+                                label={
+                                    <Stack
+                                        direction='row'
+                                        spacing={0.75}
+                                        sx={{ alignItems: 'center' }}
+                                    >
+                                        <RatingSystemIcon system={RatingSystem.Fide} size='small' />
+                                        <Typography
+                                            variant='body2'
+                                            sx={{ color: 'text.secondary' }}
+                                        >
+                                            {t('fide')}
+                                        </Typography>
+                                    </Stack>
+                                }
+                            />
+                        )}
+                        {showUscf && (
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        size='small'
+                                        checked={includeUscf}
+                                        onChange={(e) => setIncludeUscf(e.target.checked)}
+                                    />
+                                }
+                                label={
+                                    <Stack
+                                        direction='row'
+                                        spacing={0.75}
+                                        sx={{ alignItems: 'center' }}
+                                    >
+                                        <RatingSystemIcon system={RatingSystem.Uscf} size='small' />
+                                        <Typography
+                                            variant='body2'
+                                            sx={{ color: 'text.secondary' }}
+                                        >
+                                            {t('uscf')}
+                                        </Typography>
+                                    </Stack>
+                                }
+                            />
+                        )}
+                    </Stack>
+                )}
             </Stack>
+
+            {isOtb && otbRequest.isLoading() && (
+                <Typography variant='caption' sx={{ color: 'text.secondary', textAlign: 'center' }}>
+                    {t('otbLoading')}
+                </Typography>
+            )}
 
             {results.length === 0 ? (
                 <Typography sx={{ textAlign: 'center' }}>{t('emptyNoGames')}</Typography>
             ) : (
                 <>
-                    <RecentSessionsCard sessions={recentSessions} t={t} />
+                    <RecentSessionsCard sessions={recentSessions} isOtb={isOtb} t={t} />
                 </>
             )}
         </Stack>
@@ -517,12 +784,27 @@ function formatScore(score: number): string {
     return Number.isInteger(score) ? `${score}` : `${Math.floor(score)}½`;
 }
 
+/** Score percentage (wins + draws/2) / games * 100 — includes draws, unlike winRate. */
+function scorePercentage(breakdown: ResultsBreakdown): number {
+    return breakdown.games > 0
+        ? ((breakdown.wins + breakdown.draws / 2) / breakdown.games) * 100
+        : 0;
+}
+
 /** Share of games not lost (wins + draws) / games * 100. */
 function unbeatenPercentage(breakdown: ResultsBreakdown): number {
     return breakdown.games > 0 ? ((breakdown.wins + breakdown.draws) / breakdown.games) * 100 : 0;
 }
 
-function SummaryCard({ aggregated, t }: { aggregated: AggregatedResults; t: TFunc }) {
+function SummaryCard({
+    aggregated,
+    isOtb,
+    t,
+}: {
+    aggregated: AggregatedResults;
+    isOtb: boolean;
+    t: TFunc;
+}) {
     const {
         overall,
         byPlatform,
@@ -531,11 +813,16 @@ function SummaryCard({ aggregated, t }: { aggregated: AggregatedResults; t: TFun
         bestWin,
         whitePerformance,
         blackPerformance,
+        performance,
     } = aggregated;
-    const platforms = ONLINE_PLATFORMS.filter((platform) => byPlatform[platform]);
+    const platforms = [...ONLINE_PLATFORMS, ...OTB_PLATFORMS].filter(
+        (platform) => byPlatform[platform],
+    );
     const platformName: Record<string, string> = {
         [RatingSystem.Lichess]: 'Lichess',
         [RatingSystem.Chesscom]: 'Chess.com',
+        [RatingSystem.Fide]: 'FIDE',
+        [RatingSystem.Uscf]: 'US Chess',
     };
 
     return (
@@ -554,12 +841,35 @@ function SummaryCard({ aggregated, t }: { aggregated: AggregatedResults; t: TFun
                     >
                         <HeroStat
                             label={t('record')}
-                            value={`${overall.wins}-${overall.losses}-${overall.draws}`}
+                            value={
+                                isOtb ? (
+                                    <>
+                                        <Box
+                                            component='span'
+                                            sx={{ display: { xs: 'none', sm: 'inline' } }}
+                                        >
+                                            {`${overall.wins}-${overall.losses}-${overall.draws} · `}
+                                        </Box>
+                                        {`${scorePercentage(overall).toFixed(0)}%`}
+                                    </>
+                                ) : (
+                                    `${overall.wins}-${overall.losses}-${overall.draws}`
+                                )
+                            }
                         />
-                        <HeroStat
-                            label={t('winRate')}
-                            value={`${unbeatenPercentage(overall).toFixed(0)}%`}
-                        />
+                        {isOtb ? (
+                            <HeroStat
+                                label={t('performanceRating')}
+                                value={
+                                    performance !== undefined ? `${Math.round(performance)}` : '-'
+                                }
+                            />
+                        ) : (
+                            <HeroStat
+                                label={t('winRate')}
+                                value={`${unbeatenPercentage(overall).toFixed(0)}%`}
+                            />
+                        )}
                         <HeroStat
                             label={t('bestStreak')}
                             value={t('streakWin', { count: bestWinStreak })}
@@ -686,7 +996,11 @@ function SummaryCard({ aggregated, t }: { aggregated: AggregatedResults; t: TFun
                                                     textAlign: 'right',
                                                 }}
                                             >
-                                                {unbeatenPercentage(breakdown).toFixed(0)}%
+                                                {(isOtb
+                                                    ? scorePercentage(breakdown)
+                                                    : unbeatenPercentage(breakdown)
+                                                ).toFixed(0)}
+                                                %
                                             </Typography>
                                         </Stack>
                                     );
@@ -815,12 +1129,20 @@ function ColorStatLabel({ color, text }: { color: 'white' | 'black'; text: strin
     );
 }
 
-function RecentSessionsCard({ sessions, t }: { sessions: GameSession[]; t: TFunc }) {
+function RecentSessionsCard({
+    sessions,
+    isOtb,
+    t,
+}: {
+    sessions: GameSession[];
+    isOtb: boolean;
+    t: TFunc;
+}) {
     return (
         <Card variant='outlined' sx={{ borderRadius: 3 }}>
             <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography variant='overline' sx={{ color: 'text.secondary' }}>
-                    {t('performanceByMonth')}
+                    {isOtb ? t('tournamentResults') : t('performanceByMonth')}
                 </Typography>
                 <Stack spacing={1} sx={{ mt: 1.5 }}>
                     {sessions.map((session, index) => {
@@ -830,7 +1152,7 @@ function RecentSessionsCard({ sessions, t }: { sessions: GameSession[]; t: TFunc
                                 key={session.id}
                                 disableGutters
                                 elevation={0}
-                                defaultExpanded={index === 0}
+                                defaultExpanded={index === 0 && !isOtb}
                                 slotProps={{ transition: { unmountOnExit: true } }}
                                 sx={{
                                     border: '1px solid',
@@ -855,6 +1177,25 @@ function RecentSessionsCard({ sessions, t }: { sessions: GameSession[]; t: TFunc
                                             <Typography variant='body2' sx={{ fontWeight: 600 }}>
                                                 {session.label}
                                             </Typography>
+                                            {isOtb && session.start > 0 && (
+                                                <Typography
+                                                    variant='caption'
+                                                    sx={{
+                                                        color: 'text.secondary',
+                                                        display: 'block',
+                                                        lineHeight: 1.2,
+                                                    }}
+                                                    noWrap
+                                                >
+                                                    {new Date(session.start).toLocaleDateString(
+                                                        undefined,
+                                                        {
+                                                            month: 'long',
+                                                            year: 'numeric',
+                                                        },
+                                                    )}
+                                                </Typography>
+                                            )}
                                         </Box>
                                         <Box sx={{ flexGrow: 1, minWidth: 40 }}>
                                             <WinLossDrawBar
@@ -911,6 +1252,46 @@ function RecentSessionsCard({ sessions, t }: { sessions: GameSession[]; t: TFunc
                                             {stats.performance !== undefined &&
                                                 ` · ${t('sessionPerformance', { rating: Math.round(stats.performance) })}`}
                                         </Typography>
+                                        {isOtb && (
+                                            <Stack direction='row' spacing={1.5}>
+                                                <Stack
+                                                    direction='row'
+                                                    spacing={0.5}
+                                                    sx={{ alignItems: 'center' }}
+                                                >
+                                                    <ColorKingIcon color='white' />
+                                                    <Typography
+                                                        variant='caption'
+                                                        sx={{
+                                                            color: 'text.secondary',
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                    >
+                                                        {stats.whiteGames > 0
+                                                            ? `${formatScore(stats.whiteScore)}/${stats.whiteGames}`
+                                                            : '-'}
+                                                    </Typography>
+                                                </Stack>
+                                                <Stack
+                                                    direction='row'
+                                                    spacing={0.5}
+                                                    sx={{ alignItems: 'center' }}
+                                                >
+                                                    <ColorKingIcon color='black' />
+                                                    <Typography
+                                                        variant='caption'
+                                                        sx={{
+                                                            color: 'text.secondary',
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                    >
+                                                        {stats.blackGames > 0
+                                                            ? `${formatScore(stats.blackScore)}/${stats.blackGames}`
+                                                            : '-'}
+                                                    </Typography>
+                                                </Stack>
+                                            </Stack>
+                                        )}
                                     </Stack>
                                     <SessionGamesTable games={session.games} t={t} />
                                 </AccordionDetails>
