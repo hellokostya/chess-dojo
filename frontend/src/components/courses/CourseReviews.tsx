@@ -17,6 +17,7 @@ import {
 } from '@/api/courseReviewDemo';
 import { hasDisallowedReviewLinks, reviewLinkMessage } from '@/api/courseReviewLinks';
 import { AuthStatus, useAuth } from '@/auth/Auth';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import {
     Alert,
     Box,
@@ -24,9 +25,12 @@ import {
     Checkbox,
     Divider,
     FormControlLabel,
+    IconButton,
+    InputAdornment,
     Rating,
     Stack,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
 import { isAxiosError } from 'axios';
@@ -46,6 +50,7 @@ export default function CourseReviews({ type, id }: { type: string; id: string }
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [saved, setSaved] = useState(false);
+    const [editing, setEditing] = useState(false);
     const [demoAdmin, setDemoAdmin] = useState(false);
     const canModerate = isCourseReviewDemo ? demoAdmin : !!data?.canModerate;
     const [retry, setRetry] = useState(0);
@@ -54,6 +59,7 @@ export default function CourseReviews({ type, id }: { type: string; id: string }
         if (!isCourseReviewDemo && auth.status === AuthStatus.Loading) return;
         let active = true;
         setData(undefined);
+        setEditing(false);
         setError('');
         setSaved(false);
         loadReviews(token, type, id)
@@ -98,6 +104,7 @@ export default function CourseReviews({ type, id }: { type: string; id: string }
             setData({ ...data, reviews, ownReview });
             setRating(ownReview?.rating ?? null);
             setReview(ownReview?.review ?? '');
+            setEditing(false);
             setSaved(true);
         } catch (err) {
             const message: unknown = isAxiosError<{ message?: string }>(err)
@@ -220,7 +227,7 @@ export default function CourseReviews({ type, id }: { type: string; id: string }
                             admin approval and is visible only to you and administrators.
                         </Alert>
                     )}
-                    {data.canReview ? (
+                    {data.canReview && (!data.ownReview || editing) ? (
                         <Stack
                             spacing={2}
                             component='form'
@@ -255,8 +262,27 @@ export default function CourseReviews({ type, id }: { type: string; id: string }
                                     setSaved(false);
                                 }}
                                 disabled={busy}
-                                slotProps={{ htmlInput: { maxLength: 5000 } }}
-                                helperText={`${review.length}/5000 · Only links from chessdojo.club, chess.com, and lichess.org are allowed.`}
+                                slotProps={{
+                                    htmlInput: { maxLength: 5000 },
+                                    input: {
+                                        endAdornment: (
+                                            <InputAdornment
+                                                position='end'
+                                                sx={{ alignSelf: 'flex-start', mt: 1 }}
+                                            >
+                                                <Tooltip title='Only links from chessdojo.club, chess.com, and lichess.org are allowed.'>
+                                                    <IconButton
+                                                        size='small'
+                                                        aria-label='Review link rules'
+                                                    >
+                                                        <InfoOutlinedIcon fontSize='small' />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </InputAdornment>
+                                        ),
+                                    },
+                                }}
+                                helperText={`${review.length}/5000`}
                             />
                             <Stack direction='row' spacing={2}>
                                 <Button
@@ -264,8 +290,21 @@ export default function CourseReviews({ type, id }: { type: string; id: string }
                                     variant='contained'
                                     disabled={busy || !rating || !review.trim()}
                                 >
-                                    {data.ownReview ? 'Update rating' : 'Submit rating'}
+                                    {data.ownReview ? 'Save changes' : 'Submit rating'}
                                 </Button>
+                                {data.ownReview && (
+                                    <Button
+                                        disabled={busy}
+                                        onClick={() => {
+                                            setRating(data.ownReview?.rating ?? null);
+                                            setReview(data.ownReview?.review ?? '');
+                                            setEditing(false);
+                                            setError('');
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                )}
                                 {data.ownReview && (
                                     <Button
                                         color='error'
@@ -275,6 +314,34 @@ export default function CourseReviews({ type, id }: { type: string; id: string }
                                         Remove my rating
                                     </Button>
                                 )}
+                            </Stack>
+                        </Stack>
+                    ) : data.ownReview ? (
+                        <Stack spacing={1}>
+                            <Typography variant='h6'>Your review</Typography>
+                            <Rating value={data.ownReview.rating} readOnly size='small' />
+                            <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                                {data.ownReview.review}
+                            </Typography>
+                            <Stack direction='row' spacing={1}>
+                                {data.canReview && (
+                                    <Button
+                                        disabled={busy}
+                                        onClick={() => {
+                                            setEditing(true);
+                                            setSaved(false);
+                                        }}
+                                    >
+                                        Edit review
+                                    </Button>
+                                )}
+                                <Button
+                                    color='error'
+                                    disabled={busy}
+                                    onClick={() => void submit(true)}
+                                >
+                                    Remove my rating
+                                </Button>
                             </Stack>
                         </Stack>
                     ) : (
@@ -301,8 +368,8 @@ export default function CourseReviews({ type, id }: { type: string; id: string }
                             (item) =>
                                 canModerate ||
                                 (item.review &&
-                                    (item.moderationStatus === 'APPROVED' ||
-                                        item.username === data.ownReview?.username)),
+                                    item.moderationStatus === 'APPROVED' &&
+                                    item.username !== data.ownReview?.username),
                         )
                         .map((item) => (
                             <Box key={item.username} sx={{ py: 2 }}>

@@ -171,3 +171,24 @@ it('explains the whitelist and prevents submitting an external link', async () =
     expect(saveCourseReview).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox', { name: 'Review' })).toHaveValue('See example.com');
 });
+
+it('shows a saved review until the author chooses to edit, and supports cancel', async () => {
+    vi.mocked(getCourseReviews).mockResolvedValue({
+        reviews: [{ ...own, review: 'Helpful explanations', moderationStatus: 'APPROVED' }],
+        ownReview: { ...own, review: 'Helpful explanations', moderationStatus: 'APPROVED' },
+        canReview: true,
+    });
+    render(<CourseReviews type='OPENING' id='course' />);
+    expect(await screen.findByText('Your review')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Review' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Helpful explanations')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit review' }));
+    expect(screen.getByRole('textbox', { name: 'Review' })).toHaveValue('Helpful explanations');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Review' }), {
+        target: { value: 'Unsaved edit' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('textbox', { name: 'Review' })).not.toBeInTheDocument();
+    expect(screen.getByText('Helpful explanations')).toBeInTheDocument();
+    expect(saveCourseReview).not.toHaveBeenCalled();
+});

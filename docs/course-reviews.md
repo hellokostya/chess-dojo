@@ -8,6 +8,7 @@ Implemented on `course-ratings-reviews`, based on upstream production `main` at
 - Active Core (`BASIC`), Lecture, and Game Review members can review any published course.
 - A signed-in purchaser can review the specific course they own, including with an expired or free membership.
 - Submitting feedback is optional. Every submission requires 1–5 whole stars and a non-blank written review (maximum 5000 characters).
+- After submitting, the author sees their saved review. **Edit review** opens the editor, with **Save changes** and **Cancel** actions. Link instructions appear in an info-icon tooltip.
 - Each account has one submission per course. Saving again replaces it. Removing deletes both its stars and text.
 - Former members can remove their own submission even when they can no longer submit one.
 - Everyone can see the average rating, rating count, and written reviews on the course and purchase pages.
