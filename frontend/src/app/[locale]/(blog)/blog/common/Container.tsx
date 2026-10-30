@@ -20,6 +20,10 @@ export const Container = ({ children }: { children: ReactNode }) => {
                     px: { xs: 2.5, sm: 6, md: 8 },
                     maxWidth: '920px !important',
                     bgcolor: 'background.paper',
+                    // The dark theme uses nearly identical default and paper backgrounds.
+                    // Blend in a little foreground color so the reading surface stays visible.
+                    backgroundColor:
+                        'color-mix(in srgb, var(--mui-palette-background-paper) 94%, var(--mui-palette-text-primary) 6%)',
                     border: '1px solid',
                     borderColor: 'divider',
                     borderTop: '3px solid',
