@@ -1,3 +1,7 @@
+import type {
+    CreateBlogRequest,
+    UpdateBlogRequest,
+} from '@jackstenglein/chess-dojo-common/src/blog/api';
 import { expect, test } from '@playwright/test';
 import { interceptApi, useAdminUser } from '../../../lib/helpers';
 
@@ -24,13 +28,15 @@ test.describe('Blog editor (create)', () => {
         let updated = 0;
         await page.route('**/blog', async (route) => {
             created++;
-            await route.fulfill({ json: { ...route.request().postDataJSON(), id: 'draft-post' } });
+            const body = route.request().postDataJSON() as CreateBlogRequest;
+            await route.fulfill({ json: { ...body, id: 'draft-post' } });
         });
         await page.route('**/blog/chessdojo/draft-post', async (route) => {
             updated++;
             expect(route.request().method()).toBe('PUT');
-            expect(route.request().postDataJSON().status).toBe('PUBLISHED');
-            await route.fulfill({ json: { ...route.request().postDataJSON(), id: 'draft-post' } });
+            const body = route.request().postDataJSON() as UpdateBlogRequest;
+            expect(body.status).toBe('PUBLISHED');
+            await route.fulfill({ json: { ...body, id: 'draft-post' } });
         });
         await page.getByRole('textbox', { name: 'URL slug' }).fill('draft-post');
         await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Draft title');
