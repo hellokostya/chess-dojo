@@ -7,6 +7,7 @@ import { Box, Container, Stack, Tab, Tabs, TextField, Typography, useTheme } fro
 import { SyntheticEvent, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Container as BlogContainer } from '../../../../(blog)/blog/common/Container';
 import { Header } from '../../../../(blog)/blog/common/Header';
 
 import { BlogImageUpload } from './BlogImageUpload';
@@ -157,7 +158,7 @@ export function MarkdownEditor({
                         overflow: 'auto',
                     }}
                 >
-                    <Container maxWidth='md'>
+                    <BlogContainer>
                         <Header title={title} subtitle={subtitle} />
                         {coverImage && (
                             <Box
@@ -180,7 +181,7 @@ export function MarkdownEditor({
                                 Nothing to preview. Switch to Write to add content.
                             </Typography>
                         )}
-                    </Container>
+                    </BlogContainer>
                 </Box>
             )}
         </Stack>

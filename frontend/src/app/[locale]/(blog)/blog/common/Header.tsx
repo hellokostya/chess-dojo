@@ -1,4 +1,5 @@
-import { Divider, Stack, Typography } from '@mui/material';
+import { Link } from '@/components/navigation/Link';
+import { Box, Divider, Stack, Typography } from '@mui/material';
 import Image from 'next/image';
 import { ReactNode } from 'react';
 
@@ -15,9 +16,33 @@ export const Header = ({ title, subtitle, image, imageCaption, hideDivider }: He
         <div data-testid='blog-header'>
             <Stack
                 sx={{
-                    mb: 3,
+                    mb: 4,
+                    pb: 1,
                 }}
             >
+                <Link
+                    href='/blog'
+                    underline='none'
+                    sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        alignSelf: 'flex-start',
+                        mb: 3,
+                        color: 'text.secondary',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.14em',
+                        textTransform: 'uppercase',
+                        '&:hover': { color: 'text.primary' },
+                    }}
+                >
+                    <Box
+                        component='span'
+                        sx={{ width: 24, height: 3, bgcolor: 'dojoOrange.main', borderRadius: 1 }}
+                    />
+                    ChessDojo Blog
+                </Link>
                 <Typography
                     variant='h3'
                     component='h1'
@@ -35,7 +60,9 @@ export const Header = ({ title, subtitle, image, imageCaption, hideDivider }: He
                     variant='h6'
                     sx={{
                         color: 'text.secondary',
-                        mb: 1,
+                        mb: 2,
+                        fontSize: { xs: '1rem', sm: '1.15rem' },
+                        lineHeight: 1.6,
                     }}
                 >
                     {subtitle}
