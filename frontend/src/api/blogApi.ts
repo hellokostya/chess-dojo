@@ -138,3 +138,11 @@ export async function uploadBlogImage(file: File): Promise<string> {
     );
     return response.data.url;
 }
+
+/** Permanently deletes a stored blog and its comments. Requires admin access. */
+export function deleteBlog({ owner, id }: GetBlogRequest): Promise<AxiosResponse<GetBlogRequest>> {
+    return axiosService.delete<GetBlogRequest>(
+        `/blog/${encodeURIComponent(owner)}/${id.split('/').map(encodeURIComponent).join('/')}`,
+        { functionName: 'deleteBlog' },
+    );
+}

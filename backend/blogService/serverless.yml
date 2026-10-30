@@ -21,6 +21,23 @@ provider:
   deploymentMethod: direct
 
 functions:
+  delete:
+    handler: delete.handler
+    events:
+      - httpApi:
+          path: /blog/{owner}/{id+}
+          method: delete
+          authorizer:
+            type: jwt
+            id: ${param:apiAuthorizer}
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:GetItem
+        Resource: ${param:UsersTableArn}
+      - Effect: Allow
+        Action: dynamodb:DeleteItem
+        Resource: !GetAtt BlogsTable.Arn
+
   uploadImage:
     handler: uploadImage.handler
     environment:

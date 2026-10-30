@@ -27,6 +27,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers-pro';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
+import { DeleteBlogButton } from '../DeleteBlogButton';
 import { BlogImageUpload } from './BlogImageUpload';
 
 export function EditBlogPage({ id }: { id?: string }) {
@@ -235,6 +236,14 @@ export function EditBlogPage({ id }: { id?: string }) {
                         justifyContent: 'flex-end',
                     }}
                 >
+                    {savedId && (
+                        <DeleteBlogButton
+                            owner={DOJO_BLOG_OWNER}
+                            id={savedId}
+                            title={title}
+                            onDeleted={() => router.replace('/admin/blog')}
+                        />
+                    )}
                     <Button component={Link} href='/admin/blog' variant='outlined'>
                         Cancel
                     </Button>
