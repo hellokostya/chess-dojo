@@ -19,6 +19,33 @@ test.describe('Blog editor (create)', () => {
         await expect(page.getByRole('button', { name: 'Create post' })).toBeVisible();
     });
 
+    test('saving a new draft then publishing updates the existing post', async ({ page }) => {
+        let created = 0;
+        let updated = 0;
+        await page.route('**/blog', async (route) => {
+            created++;
+            await route.fulfill({ json: { ...route.request().postDataJSON(), id: 'draft-post' } });
+        });
+        await page.route('**/blog/chessdojo/draft-post', async (route) => {
+            updated++;
+            expect(route.request().method()).toBe('PUT');
+            expect(route.request().postDataJSON().status).toBe('PUBLISHED');
+            await route.fulfill({ json: { ...route.request().postDataJSON(), id: 'draft-post' } });
+        });
+        await page.getByRole('textbox', { name: 'URL slug' }).fill('draft-post');
+        await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Draft title');
+        await page.getByRole('textbox', { name: 'Subtitle' }).fill('Subtitle');
+        await page.getByRole('textbox', { name: 'Description' }).fill('Description');
+        await page.getByRole('button', { name: 'Create post' }).click();
+        await expect(page.getByRole('button', { name: 'Update post' })).toBeVisible();
+        await expect(page.getByRole('textbox', { name: 'URL slug' })).toBeDisabled();
+        await page.getByRole('combobox', { name: 'Status' }).click();
+        await page.getByRole('option', { name: 'Published', exact: true }).click();
+        await page.getByRole('button', { name: 'Update post' }).click();
+        await expect.poll(() => updated).toBe(1);
+        expect(created).toBe(1);
+    });
+
     test('editor has Write, Preview, List preview, and Syntax tabs', async ({ page }) => {
         await expect(page.getByRole('tab', { name: 'Write' })).toBeVisible();
         await expect(page.getByRole('tab', { name: 'Preview', exact: true })).toBeVisible();

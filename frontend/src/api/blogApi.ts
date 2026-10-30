@@ -122,3 +122,19 @@ export function deleteBlogComment(
         functionName: 'deleteBlogComment',
     });
 }
+
+/** Uploads an image to permanent blog storage. */
+export async function uploadBlogImage(file: File): Promise<string> {
+    const data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = () => reject(new Error('Could not read image'));
+        reader.readAsDataURL(file);
+    });
+    const response = await axiosService.post<{ url: string }>(
+        '/blog/images',
+        { contentType: file.type, data },
+        { functionName: 'uploadBlogImage' },
+    );
+    return response.data.url;
+}

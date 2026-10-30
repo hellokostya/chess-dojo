@@ -18,7 +18,19 @@ export const Header = ({ title, subtitle, image, imageCaption, hideDivider }: He
                     mb: 3,
                 }}
             >
-                <Typography variant='h4'>{title}</Typography>
+                <Typography
+                    variant='h3'
+                    component='h1'
+                    sx={{
+                        fontWeight: 800,
+                        letterSpacing: '-0.03em',
+                        lineHeight: 1.15,
+                        fontSize: { xs: '2rem', sm: '3rem' },
+                        mb: 2,
+                    }}
+                >
+                    {title}
+                </Typography>
                 <Typography
                     variant='h6'
                     sx={{
